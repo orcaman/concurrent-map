@@ -1,4 +1,4 @@
-# concurrent map
+# concurrent map [![Circle CI](https://circleci.com/gh/streamrail/concurrent-map.png?style=badge)](https://circleci.com/gh/streamrail/concurrent-map)
 
 Golang map doesn't support concurrent reads and writes, concurrent map is a wrapper around Go's map, more specifically around a String -> interface{} kinda map, which enforces concurrency.
 
