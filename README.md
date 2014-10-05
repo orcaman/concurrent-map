@@ -55,4 +55,4 @@ go test "github.com/streamrail/concurrent-map"
 
 
 ## license 
-MIT (see [LICENSE](https://github.com/streamrail/concurrent-map/blob/master/README.md) file)
+MIT (see [LICENSE](https://github.com/streamrail/concurrent-map/blob/master/LICENSE) file)
