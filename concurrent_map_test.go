@@ -185,10 +185,10 @@ func TestRange(t *testing.T) {
 func TestConcurrent(t *testing.T) {
 	m := NewConcurretMap()
 	ch := make(chan int)
-	var a [10000]int
+	var a [1000]int
 
-	// Using go routines insert 10000 ints into our map.
-	for i := 0; i < 10000; i++ {
+	// Using go routines insert 1000 ints into our map.
+	for i := 0; i < 1000; i++ {
 		go func(j int) {
 			// Add item to map.
 			m.Add(strconv.Itoa(j), j)
@@ -206,21 +206,21 @@ func TestConcurrent(t *testing.T) {
 	for elem := range ch {
 		a[counter] = elem
 		counter++
-		if counter == 10000 {
+		if counter == 1000 {
 			break
 		}
 	}
 
 	// Sorts array, will make is simpler to verify all inserted values we're returned.
-	sort.Ints(a[0:10000])
+	sort.Ints(a[0:1000])
 
-	// Make sure map contains 10000 elements.
-	if m.Count() != 10000 {
-		t.Error("Expecting 10000 elements.")
+	// Make sure map contains 1000 elements.
+	if m.Count() != 1000 {
+		t.Error("Expecting 1000 elements.")
 	}
 
 	// Make sure all inserted values we're fetched from map.
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 1000; i++ {
 		if i != a[i] {
 			t.Error("missing value", i)
 		}

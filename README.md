@@ -1,4 +1,4 @@
-# concurrent map
+# concurrent map [![Circle CI](https://circleci.com/gh/streamrail/concurrent-map.png?style=badge)](https://circleci.com/gh/streamrail/concurrent-map)
 
 Golang map doesn't support concurrent reads and writes, Please see (http://golang.org/doc/faq#atomic_maps and http://blog.golang.org/go-maps-in-action), in case you're using multiple go routines to read and write concurrently from a map some form of a guard mechanism should be in-place.
 
