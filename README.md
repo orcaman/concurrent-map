@@ -1,6 +1,8 @@
 # concurrent map
 
-Golang map doesn't support concurrent reads and writes, concurrent map is a wrapper around Go's map, more specifically around a String -> interface{} kinda map, which enforces concurrency.
+Golang map doesn't support concurrent reads and writes, Please see (http://golang.org/doc/faq#atomic_maps and http://blog.golang.org/go-maps-in-action), in case you're using multiple go routines to read and write concurrently from a map some form of a guard mechanism should be in-place.
+
+Concurrent map is a wrapper around Go's map, more specifically around a String -> interface{} kinda map, which enforces concurrency.
 
 ## usage
 
