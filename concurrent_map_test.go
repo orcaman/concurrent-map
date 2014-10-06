@@ -11,7 +11,7 @@ type Animal struct {
 }
 
 func TestMapCreation(t *testing.T) {
-	m := NewConcurretMap()
+	m := NewConcurrentMap()
 	if m == nil {
 		t.Error("map is null.")
 	}
@@ -22,7 +22,7 @@ func TestMapCreation(t *testing.T) {
 }
 
 func TestInsert(t *testing.T) {
-	m := NewConcurretMap()
+	m := NewConcurrentMap()
 	elephant := Animal{"elephant"}
 	monkey := Animal{"monkey"}
 
@@ -35,7 +35,7 @@ func TestInsert(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	m := NewConcurretMap()
+	m := NewConcurrentMap()
 
 	// Get a missing element.
 	val, ok := m.Get("Money")
@@ -70,7 +70,7 @@ func TestGet(t *testing.T) {
 }
 
 func TestHas(t *testing.T) {
-	m := NewConcurretMap()
+	m := NewConcurrentMap()
 
 	// Get a missing element.
 	if m.Has("Money") == true {
@@ -86,7 +86,7 @@ func TestHas(t *testing.T) {
 }
 
 func TestRemove(t *testing.T) {
-	m := NewConcurretMap()
+	m := NewConcurrentMap()
 
 	monkey := Animal{"monkey"}
 	m.Add("monkey", monkey)
@@ -112,7 +112,7 @@ func TestRemove(t *testing.T) {
 }
 
 func TestCount(t *testing.T) {
-	m := NewConcurretMap()
+	m := NewConcurrentMap()
 	for i := 0; i < 100; i++ {
 		m.Add(strconv.Itoa(i), Animal{strconv.Itoa(i)})
 	}
@@ -123,7 +123,7 @@ func TestCount(t *testing.T) {
 }
 
 func TestClear(t *testing.T) {
-	m := NewConcurretMap()
+	m := NewConcurrentMap()
 
 	m.Clear()
 	if m.Count() != 0 {
@@ -145,7 +145,7 @@ func TestClear(t *testing.T) {
 }
 
 func TestIsEmpty(t *testing.T) {
-	m := NewConcurretMap()
+	m := NewConcurrentMap()
 
 	if m.IsEmpty() == false {
 		t.Error("new map should be empty")
@@ -159,7 +159,7 @@ func TestIsEmpty(t *testing.T) {
 }
 
 func TestRange(t *testing.T) {
-	m := NewConcurretMap()
+	m := NewConcurrentMap()
 
 	// Insert 100 elements.
 	for i := 0; i < 100; i++ {
@@ -183,7 +183,7 @@ func TestRange(t *testing.T) {
 }
 
 func TestConcurrent(t *testing.T) {
-	m := NewConcurretMap()
+	m := NewConcurrentMap()
 	ch := make(chan int)
 	var a [1000]int
 

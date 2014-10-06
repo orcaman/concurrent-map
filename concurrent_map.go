@@ -11,7 +11,7 @@ type ConcurrentMap struct {
 }
 
 // Creates a new concurent map.
-func NewConcurretMap() *ConcurrentMap {
+func NewConcurrentMap() *ConcurrentMap {
 	return &ConcurrentMap{m: make(map[string]interface{})}
 }
 
