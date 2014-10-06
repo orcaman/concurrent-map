@@ -169,7 +169,7 @@ func TestRange(t *testing.T) {
 	counter := 0
 	// Iterate over elements.
 	for item := range m.Iter() {
-		val := item.val
+		val := item.Val
 
 		if val == nil {
 			t.Error("Expecting an object.")

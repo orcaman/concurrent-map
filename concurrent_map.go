@@ -65,8 +65,8 @@ func (m *ConcurrentMap) IsEmpty() bool {
 
 // Used by the Iter function to wrap two variables together over a channel,
 type Tuple struct {
-	key string
-	val interface{}
+	Key string
+	Val interface{}
 }
 
 // Returns an iterator which could be used in a for range loop.
