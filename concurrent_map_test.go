@@ -185,42 +185,56 @@ func TestRange(t *testing.T) {
 func TestConcurrent(t *testing.T) {
 	m := NewConcurrentMap()
 	ch := make(chan int)
-	var a [1000]int
+	const iterations = 1000
+	var a [iterations]int
 
 	// Using go routines insert 1000 ints into our map.
-	for i := 0; i < 1000; i++ {
-		go func(j int) {
+	go func() {
+		for i := 0; i < iterations/2; i++ {
 			// Add item to map.
-			m.Add(strconv.Itoa(j), j)
+			m.Add(strconv.Itoa(i), i)
 
 			// Retrieve item from map.
-			val, _ := m.Get(strconv.Itoa(j))
+			val, _ := m.Get(strconv.Itoa(i))
 
 			// Write to channel inserted value.
 			ch <- val.(int)
-		}(i) // Call go routine with current index.
-	}
+		} // Call go routine with current index.
+	}()
+
+	go func() {
+		for i := iterations / 2; i < iterations; i++ {
+			// Add item to map.
+			m.Add(strconv.Itoa(i), i)
+
+			// Retrieve item from map.
+			val, _ := m.Get(strconv.Itoa(i))
+
+			// Write to channel inserted value.
+			ch <- val.(int)
+		} // Call go routine with current index.
+	}()
 
 	// Wait for all go routines to finish.
 	counter := 0
 	for elem := range ch {
 		a[counter] = elem
 		counter++
-		if counter == 1000 {
+		if counter == iterations {
 			break
 		}
 	}
 
 	// Sorts array, will make is simpler to verify all inserted values we're returned.
-	sort.Ints(a[0:1000])
+	sort.Ints(a[0:iterations])
 
 	// Make sure map contains 1000 elements.
-	if m.Count() != 1000 {
+	if m.Count() != iterations {
 		t.Error("Expecting 1000 elements.")
 	}
 
 	// Make sure all inserted values we're fetched from map.
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < iterations; i++ {
 		if i != a[i] {
 			t.Error("missing value", i)
 		}
