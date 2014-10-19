@@ -1,6 +1,7 @@
 package cmap
 
 import (
+	"encoding/json"
 	"sort"
 	"strconv"
 	"testing"
@@ -238,5 +239,20 @@ func TestConcurrent(t *testing.T) {
 		if i != a[i] {
 			t.Error("missing value", i)
 		}
+	}
+}
+
+func TestJsonMarshal(t *testing.T) {
+	expected := "{\"M\":{\"a\":1,\"b\":2}}"
+	m := NewConcurrentMap()
+	m.Add("a", 1)
+	m.Add("b", 2)
+	j, err := json.Marshal(m)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if string(j) != expected {
+		t.Error("json", string(j), "differ from expected", expected)
 	}
 }

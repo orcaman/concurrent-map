@@ -1,6 +1,7 @@
 package cmap
 
 import (
+	"encoding/json"
 	"sync"
 )
 
@@ -84,4 +85,10 @@ func (m *ConcurrentMap) Iter() <-chan Tuple {
 		close(ch)
 	}()
 	return ch
+}
+
+func (m ConcurrentMap) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		M map[string]interface{}
+	}{M: m.m})
 }
