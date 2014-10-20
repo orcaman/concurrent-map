@@ -12,7 +12,7 @@ type Animal struct {
 }
 
 func TestMapCreation(t *testing.T) {
-	m := NewConcurrentMap()
+	m := New()
 	if m == nil {
 		t.Error("map is null.")
 	}
@@ -23,7 +23,7 @@ func TestMapCreation(t *testing.T) {
 }
 
 func TestInsert(t *testing.T) {
-	m := NewConcurrentMap()
+	m := New()
 	elephant := Animal{"elephant"}
 	monkey := Animal{"monkey"}
 
@@ -36,7 +36,7 @@ func TestInsert(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	m := NewConcurrentMap()
+	m := New()
 
 	// Get a missing element.
 	val, ok := m.Get("Money")
@@ -71,7 +71,7 @@ func TestGet(t *testing.T) {
 }
 
 func TestHas(t *testing.T) {
-	m := NewConcurrentMap()
+	m := New()
 
 	// Get a missing element.
 	if m.Has("Money") == true {
@@ -87,7 +87,7 @@ func TestHas(t *testing.T) {
 }
 
 func TestRemove(t *testing.T) {
-	m := NewConcurrentMap()
+	m := New()
 
 	monkey := Animal{"monkey"}
 	m.Add("monkey", monkey)
@@ -113,7 +113,7 @@ func TestRemove(t *testing.T) {
 }
 
 func TestCount(t *testing.T) {
-	m := NewConcurrentMap()
+	m := New()
 	for i := 0; i < 100; i++ {
 		m.Add(strconv.Itoa(i), Animal{strconv.Itoa(i)})
 	}
@@ -124,7 +124,7 @@ func TestCount(t *testing.T) {
 }
 
 func TestClear(t *testing.T) {
-	m := NewConcurrentMap()
+	m := New()
 
 	m.Clear()
 	if m.Count() != 0 {
@@ -146,7 +146,7 @@ func TestClear(t *testing.T) {
 }
 
 func TestIsEmpty(t *testing.T) {
-	m := NewConcurrentMap()
+	m := New()
 
 	if m.IsEmpty() == false {
 		t.Error("new map should be empty")
@@ -159,8 +159,8 @@ func TestIsEmpty(t *testing.T) {
 	}
 }
 
-func TestRange(t *testing.T) {
-	m := NewConcurrentMap()
+func TestIterator(t *testing.T) {
+	m := New()
 
 	// Insert 100 elements.
 	for i := 0; i < 100; i++ {
@@ -183,8 +183,32 @@ func TestRange(t *testing.T) {
 	}
 }
 
+func TestBufferedIterator(t *testing.T) {
+	m := New()
+
+	// Insert 100 elements.
+	for i := 0; i < 100; i++ {
+		m.Add(strconv.Itoa(i), Animal{strconv.Itoa(i)})
+	}
+
+	counter := 0
+	// Iterate over elements.
+	for item := range m.IterBuffered() {
+		val := item.Val
+
+		if val == nil {
+			t.Error("Expecting an object.")
+		}
+		counter++
+	}
+
+	if counter != 100 {
+		t.Error("We should have counted 100 elements.")
+	}
+}
+
 func TestConcurrent(t *testing.T) {
-	m := NewConcurrentMap()
+	m := New()
 	ch := make(chan int)
 	const iterations = 1000
 	var a [iterations]int
@@ -244,7 +268,7 @@ func TestConcurrent(t *testing.T) {
 
 func TestJsonMarshal(t *testing.T) {
 	expected := "{\"M\":{\"a\":1,\"b\":2}}"
-	m := NewConcurrentMap()
+	m := New()
 	m.Add("a", 1)
 	m.Add("b", 2)
 	j, err := json.Marshal(m)
