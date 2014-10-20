@@ -28,7 +28,7 @@ The package is now imported under the "cmap" namespace.
 ```go
 
 	// Create a new map.
-	map := cmap.NewConcurretMap()
+	map := cmap.New()
 	
 	// Add item to map, adds "bar" under key "foo"
 	map.Add("foo", "bar")
