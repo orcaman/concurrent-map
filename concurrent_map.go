@@ -27,6 +27,8 @@ func (m *ConcurrentMap) Add(key string, value interface{}) {
 
 // Returns the number of elements within the map.
 func (m *ConcurrentMap) Count() int {
+	m.RLock()
+	defer m.RUnlock()
 	return len(m.m)
 }
 
