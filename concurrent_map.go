@@ -73,7 +73,7 @@ func (m *ConcurrentMap) IsEmpty() bool {
 	return len(m.m) == 0
 }
 
-// Used by the Iter function to wrap two variables together over a channel,
+// Used by the Iter & IterBuffered functions to wrap two variables together over a channel,
 type Tuple struct {
 	Key string
 	Val interface{}
@@ -81,8 +81,21 @@ type Tuple struct {
 
 // Returns an iterator which could be used in a for range loop.
 func (m *ConcurrentMap) Iter() <-chan Tuple {
-	//ch := make(chan interface{})
 	ch := make(chan Tuple)
+	go func() {
+		m.RLock()
+		defer m.RUnlock()
+		for key, val := range m.m {
+			ch <- Tuple{key, val}
+		}
+		close(ch)
+	}()
+	return ch
+}
+
+// Returns a buffered iterator which could be used in a for range loop.
+func (m *ConcurrentMap) IterBuffered() <-chan Tuple {
+	ch := make(chan Tuple, m.Count())
 	go func() {
 		m.RLock()
 		defer m.RUnlock()

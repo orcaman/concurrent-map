@@ -159,8 +159,8 @@ func TestIsEmpty(t *testing.T) {
 	}
 }
 
-func TestRange(t *testing.T) {
-	m := NewConcurrentMap()
+func TestIterator(t *testing.T) {
+	m := New()
 
 	// Insert 100 elements.
 	for i := 0; i < 100; i++ {
@@ -170,6 +170,30 @@ func TestRange(t *testing.T) {
 	counter := 0
 	// Iterate over elements.
 	for item := range m.Iter() {
+		val := item.Val
+
+		if val == nil {
+			t.Error("Expecting an object.")
+		}
+		counter++
+	}
+
+	if counter != 100 {
+		t.Error("We should have counted 100 elements.")
+	}
+}
+
+func TestBufferedIterator(t *testing.T) {
+	m := New()
+
+	// Insert 100 elements.
+	for i := 0; i < 100; i++ {
+		m.Add(strconv.Itoa(i), Animal{strconv.Itoa(i)})
+	}
+
+	counter := 0
+	// Iterate over elements.
+	for item := range m.IterBuffered() {
 		val := item.Val
 
 		if val == nil {
