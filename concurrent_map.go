@@ -23,8 +23,8 @@ func NewConcurrentMap() *ConcurrentMap {
 	return New()
 }
 
-// Adds an element to the map.
-func (m *ConcurrentMap) Add(key string, value interface{}) {
+// Adds or replaces an element in the map.
+func (m *ConcurrentMap) Set(key string, value interface{}) {
 	m.Lock()
 	defer m.Unlock()
 	m.m[key] = value
