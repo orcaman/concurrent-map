@@ -27,8 +27,8 @@ func TestInsert(t *testing.T) {
 	elephant := Animal{"elephant"}
 	monkey := Animal{"monkey"}
 
-	m.Add("elephant", elephant)
-	m.Add("monkey", monkey)
+	m.Set("elephant", elephant)
+	m.Set("monkey", monkey)
 
 	if m.Count() != 2 {
 		t.Error("map should contain exactly two elements.")
@@ -50,7 +50,7 @@ func TestGet(t *testing.T) {
 	}
 
 	elephant := Animal{"elephant"}
-	m.Add("elephant", elephant)
+	m.Set("elephant", elephant)
 
 	// Retrieve inserted element.
 
@@ -79,7 +79,7 @@ func TestHas(t *testing.T) {
 	}
 
 	elephant := Animal{"elephant"}
-	m.Add("elephant", elephant)
+	m.Set("elephant", elephant)
 
 	if m.Has("elephant") == false {
 		t.Error("element exists, expecting Has to return True.")
@@ -90,7 +90,7 @@ func TestRemove(t *testing.T) {
 	m := New()
 
 	monkey := Animal{"monkey"}
-	m.Add("monkey", monkey)
+	m.Set("monkey", monkey)
 
 	m.Remove("monkey")
 
@@ -115,7 +115,7 @@ func TestRemove(t *testing.T) {
 func TestCount(t *testing.T) {
 	m := New()
 	for i := 0; i < 100; i++ {
-		m.Add(strconv.Itoa(i), Animal{strconv.Itoa(i)})
+		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
 	}
 
 	if m.Count() != 100 {
@@ -133,7 +133,7 @@ func TestClear(t *testing.T) {
 
 	monkey := Animal{"monkey"}
 
-	m.Add("monkey", monkey)
+	m.Set("monkey", monkey)
 
 	m.Clear()
 	if m.Count() != 0 {
@@ -152,7 +152,7 @@ func TestIsEmpty(t *testing.T) {
 		t.Error("new map should be empty")
 	}
 
-	m.Add("elephant", Animal{"elephant"})
+	m.Set("elephant", Animal{"elephant"})
 
 	if m.IsEmpty() != false {
 		t.Error("map shouldn't be empty.")
@@ -164,7 +164,7 @@ func TestIterator(t *testing.T) {
 
 	// Insert 100 elements.
 	for i := 0; i < 100; i++ {
-		m.Add(strconv.Itoa(i), Animal{strconv.Itoa(i)})
+		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
 	}
 
 	counter := 0
@@ -188,7 +188,7 @@ func TestBufferedIterator(t *testing.T) {
 
 	// Insert 100 elements.
 	for i := 0; i < 100; i++ {
-		m.Add(strconv.Itoa(i), Animal{strconv.Itoa(i)})
+		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
 	}
 
 	counter := 0
@@ -217,7 +217,7 @@ func TestConcurrent(t *testing.T) {
 	go func() {
 		for i := 0; i < iterations/2; i++ {
 			// Add item to map.
-			m.Add(strconv.Itoa(i), i)
+			m.Set(strconv.Itoa(i), i)
 
 			// Retrieve item from map.
 			val, _ := m.Get(strconv.Itoa(i))
@@ -230,7 +230,7 @@ func TestConcurrent(t *testing.T) {
 	go func() {
 		for i := iterations / 2; i < iterations; i++ {
 			// Add item to map.
-			m.Add(strconv.Itoa(i), i)
+			m.Set(strconv.Itoa(i), i)
 
 			// Retrieve item from map.
 			val, _ := m.Get(strconv.Itoa(i))
@@ -267,10 +267,10 @@ func TestConcurrent(t *testing.T) {
 }
 
 func TestJsonMarshal(t *testing.T) {
-	expected := "{\"M\":{\"a\":1,\"b\":2}}"
+	expected := "{\"M\":{\"86\":{\"M\":{\"a\":1}},\"e9\":{\"M\":{\"b\":2}}}}"
 	m := New()
-	m.Add("a", 1)
-	m.Add("b", 2)
+	m.Set("a", 1)
+	m.Set("b", 2)
 	j, err := json.Marshal(m)
 	if err != nil {
 		t.Error(err)
