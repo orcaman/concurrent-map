@@ -123,28 +123,6 @@ func TestCount(t *testing.T) {
 	}
 }
 
-func TestClear(t *testing.T) {
-	m := New()
-
-	m.Clear()
-	if m.Count() != 0 {
-		t.Error("Expecting an empty map")
-	}
-
-	monkey := Animal{"monkey"}
-
-	m.Set("monkey", monkey)
-
-	m.Clear()
-	if m.Count() != 0 {
-		t.Error("Expecting an empty map")
-	}
-
-	if &monkey == nil {
-		t.Error("Element should still exits")
-	}
-}
-
 func TestIsEmpty(t *testing.T) {
 	m := New()
 
@@ -267,7 +245,9 @@ func TestConcurrent(t *testing.T) {
 }
 
 func TestJsonMarshal(t *testing.T) {
-	expected := "{\"M\":{\"86\":{\"M\":{\"a\":1}},\"e9\":{\"M\":{\"b\":2}}}}"
+	SHARD_COUNT = 2
+	defer func() { SHARD_COUNT = 32 }()
+	expected := "[{\"M\":{\"a\":1}},{\"M\":{\"b\":2}}]"
 	m := New()
 	m.Set("a", 1)
 	m.Set("b", 2)
@@ -279,4 +259,5 @@ func TestJsonMarshal(t *testing.T) {
 	if string(j) != expected {
 		t.Error("json", string(j), "differ from expected", expected)
 	}
+	println(string(j))
 }
