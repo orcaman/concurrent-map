@@ -30,8 +30,8 @@ The package is now imported under the "cmap" namespace.
 	// Create a new map.
 	map := cmap.New()
 	
-	// Add item to map, adds "bar" under key "foo"
-	map.Add("foo", "bar")
+	// Sets item within map, sets "bar" under key "foo"
+	map.Set("foo", "bar")
 
 	// Retrieve item from map.
 	tmp, ok := map.Get("foo")
