@@ -149,9 +149,19 @@ func (m ConcurrentMap) MarshalJSON() ([]byte, error) {
 	return json.Marshal(tmp)
 }
 
-// Reviles ConcurrentMapShared "private" variables to json marshal.
-// func (m ConcurrentMapShared) MarshalJSON() ([]byte, error) {
-// 	return json.Marshal(struct {
-// 		Items map[string]interface{}
-// 	}{Items: m.items})
-// }
+func (m *ConcurrentMap) UnmarshalJSON(b []byte) (err error) {
+	// Reverse process of Marshal.
+
+	tmp := make(map[string]interface{})
+
+	// Unmarshal into a single map.
+	if err := json.Unmarshal(b, &tmp); err != nil {
+		return nil
+	}
+
+	// foreach key,value pair in temporary map insert into our concurrent map.
+	for key, val := range tmp {
+		m.Set(key, val)
+	}
+	return nil
+}
