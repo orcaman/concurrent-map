@@ -260,33 +260,4 @@ func TestJsonMarshal(t *testing.T) {
 		t.Error("json", string(j), "differ from expected", expected)
 		return
 	}
-
-	// Test unmarshal.
-	m2 := New()
-	err = json.Unmarshal(j, &m2)
-	if err != nil {
-		t.Error("Unmarshal error:", err)
-	}
-
-	// Maps should contain an equal number of elements.
-	if m.Count() != m2.Count() {
-		t.Error("Maps differ on size, original size", m.Count(), "umarshaled size", m2.Count())
-	}
-
-	// Make sure maps content is the same.
-	for item := range m.Iter() {
-		key := item.Key
-		val := item.Val
-		val = val.(int)
-
-		v, ok := m2.Get(key)
-		if ok == false {
-			t.Error("Unmarshaled map missing value under key", key)
-		}
-		v = int(v.(float64))
-
-		if v != val {
-			t.Error("Unmarshaled value", v, "differ from origin", val)
-		}
-	}
 }
