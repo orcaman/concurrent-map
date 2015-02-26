@@ -33,7 +33,7 @@ func New() ConcurrentMap {
 func (m ConcurrentMap) GetShard(key string) *ConcurrentMapShared {
 	hasher := fnv.New32()
 	hasher.Write([]byte(key))
-	return m[int(hasher.Sum32())%SHARD_COUNT]
+	return m[uint(hasher.Sum32())%uint(SHARD_COUNT)]
 }
 
 // Sets the given value under the specified key.
