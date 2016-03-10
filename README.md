@@ -52,7 +52,7 @@ go test "github.com/streamrail/concurrent-map"
 
 To generate your own custom concurrent maps please use concurrent_map_template.txt, the file is a base template for type specific maps, from terminal run:
 ```
-sed 's/\<KEY\>/string/g' concurrent_map_template.go | sed 's/\<VAL\>/int/g' > cmap_string_int.go
+sed 's/\<KEY\>/string/g' concurrent_map_template.txt | sed 's/\<VAL\>/int/g' > cmap_string_int.go
 ```
 This creates a new go source file for a string:int map.
 
