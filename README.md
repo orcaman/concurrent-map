@@ -50,11 +50,14 @@ go test "github.com/streamrail/concurrent-map"
 
 ## templating
 
-To generate your own custom concurrent maps please use concurrent_map_template.txt, the file is a base template for type specific maps, from terminal run:
+To generate your own custom concurrent maps please use concurrent_map_template.txt, the file is a base template for type specific maps.
+For Example to create a new go source file for a **string:int** map,
+in terminal run:
 ```
-sed 's/\<KEY\>/string/g' concurrent_map_template.txt | sed 's/\<VAL\>/int/g' > cmap_string_int.go
+sed 's/\<KEY\>/string/g;s/\<VAL\>/int/g' concurrent_map_template.txt > cmap_string_int.go
 ```
-This creates a new go source file for a string:int map.
+
+You can change the string and the int in the sed command to whatever you need. 
 
 ## license 
 MIT (see [LICENSE](https://github.com/streamrail/concurrent-map/blob/master/LICENSE) file)
