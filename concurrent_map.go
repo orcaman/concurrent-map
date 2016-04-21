@@ -150,6 +150,18 @@ func (m ConcurrentMap) IterBuffered() <-chan Tuple {
 	return ch
 }
 
+// Returns all items as map[string]interface{}
+func (m ConcurrentMap) Items() map[string]interface{} {
+	tmp := make(map[string]interface{})
+
+	// Insert items to temporary map.
+	for item := range m.Iter() {
+		tmp[item.Key] = item.Val
+	}
+
+	return tmp
+}
+
 //Reviles ConcurrentMap "private" variables to json marshal.
 func (m ConcurrentMap) MarshalJSON() ([]byte, error) {
 	// Create a temporary map, which will hold all item spread across shards.
