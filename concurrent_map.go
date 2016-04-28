@@ -41,8 +41,8 @@ func (m *ConcurrentMap) Set(key string, value interface{}) {
 	// Get map shard.
 	shard := m.GetShard(key)
 	shard.Lock()
-	defer shard.Unlock()
 	shard.items[key] = value
+	shard.Unlock()
 }
 
 // Sets the given value under the specified key if no value was associated with it.
@@ -50,11 +50,11 @@ func (m *ConcurrentMap) SetIfAbsent(key string, value interface{}) bool {
 	// Get map shard.
 	shard := m.GetShard(key)
 	shard.Lock()
-	defer shard.Unlock()
 	_, ok := shard.items[key]
 	if !ok {
 		shard.items[key] = value
 	}
+	shard.Unlock()
 	return !ok
 }
 
@@ -63,10 +63,9 @@ func (m ConcurrentMap) Get(key string) (interface{}, bool) {
 	// Get shard
 	shard := m.GetShard(key)
 	shard.RLock()
-	defer shard.RUnlock()
-
 	// Get item from shard.
 	val, ok := shard.items[key]
+	shard.RUnlock()
 	return val, ok
 }
 
@@ -87,10 +86,9 @@ func (m *ConcurrentMap) Has(key string) bool {
 	// Get shard
 	shard := m.GetShard(key)
 	shard.RLock()
-	defer shard.RUnlock()
-
 	// See if element is within shard.
 	_, ok := shard.items[key]
+	shard.RUnlock()
 	return ok
 }
 
@@ -99,8 +97,8 @@ func (m *ConcurrentMap) Remove(key string) {
 	// Try to get shard.
 	shard := m.GetShard(key)
 	shard.Lock()
-	defer shard.Unlock()
 	delete(shard.items, key)
+	shard.Unlock()
 }
 
 // Checks if map is empty.
