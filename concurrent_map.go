@@ -113,6 +113,8 @@ type Tuple struct {
 }
 
 // Returns an iterator which could be used in a for range loop.
+//
+// Deprecated: using IterBuffered() will get a better performence
 func (m ConcurrentMap) Iter() <-chan Tuple {
 	ch := make(chan Tuple)
 	go func() {
@@ -153,7 +155,7 @@ func (m ConcurrentMap) Items() map[string]interface{} {
 	tmp := make(map[string]interface{})
 
 	// Insert items to temporary map.
-	for item := range m.Iter() {
+	for item := range m.IterBuffered() {
 		tmp[item.Key] = item.Val
 	}
 
@@ -166,7 +168,7 @@ func (m ConcurrentMap) MarshalJSON() ([]byte, error) {
 	tmp := make(map[string]interface{})
 
 	// Insert items to temporary map.
-	for item := range m.Iter() {
+	for item := range m.IterBuffered() {
 		tmp[item.Key] = item.Val
 	}
 	return json.Marshal(tmp)

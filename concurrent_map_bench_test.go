@@ -3,6 +3,30 @@ package cmap
 import "testing"
 import "strconv"
 
+func BenchmarkItems(b *testing.B) {
+	m := New()
+
+	// Insert 100 elements.
+	for i := 0; i < 10000; i++ {
+		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
+	}
+	for i := 0; i < b.N; i++ {
+		m.Items()
+	}
+}
+
+func BenchmarkMarshalJson(b *testing.B) {
+	m := New()
+
+	// Insert 100 elements.
+	for i := 0; i < 10000; i++ {
+		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
+	}
+	for i := 0; i < b.N; i++ {
+		m.MarshalJSON()
+	}
+}
+
 func BenchmarkStrconv(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		strconv.Itoa(i)
