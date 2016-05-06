@@ -287,3 +287,17 @@ func TestJsonMarshal(t *testing.T) {
 		return
 	}
 }
+
+func TestKeys(t *testing.T) {
+	m := New()
+
+	// Insert 100 elements.
+	for i := 0; i < 100; i++ {
+		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
+	}
+	
+	keys := m.Keys()
+	if len(keys) != 100 {
+		t.Error("We should have counted 100 elements.")
+	}
+}

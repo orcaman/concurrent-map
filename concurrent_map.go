@@ -8,8 +8,6 @@ import (
 
 var SHARD_COUNT = 32
 
-// TODO: Add Keys function which returns an array of keys for the map.
-
 // A "thread" safe map of type string:Anything.
 // To avoid lock bottlenecks this map is dived to several (SHARD_COUNT) map shards.
 type ConcurrentMap []*ConcurrentMapShared
@@ -160,6 +158,31 @@ func (m ConcurrentMap) Items() map[string]interface{} {
 	}
 
 	return tmp
+}
+
+// Return all keys as []string
+func (m ConcurrentMap) Keys() []string {
+	count := m.Count()
+	ch := make(chan string, count)
+	go func() {
+		// Foreach shard.
+		for _, shard := range m {
+			// Foreach key, value pair.
+			shard.RLock()
+			for key, _ := range shard.items {
+				ch <- key
+			}
+			shard.RUnlock()
+		}
+		close(ch)
+	}()
+	
+	// Generate keys
+	keys := make([]string, count)
+	for i := 0; i < count; i++ {
+		keys[i] = <-ch
+	}
+	return keys
 }
 
 //Reviles ConcurrentMap "private" variables to json marshal.

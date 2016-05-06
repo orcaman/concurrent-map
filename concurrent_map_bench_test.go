@@ -182,3 +182,15 @@ func runWithShards(bench func(b *testing.B), b *testing.B, shardsCount int) {
 	bench(b)
 	SHARD_COUNT = oldShardsCount
 }
+
+func BenchmarkKeys(b *testing.B) {
+	m := New()
+
+	// Insert 100 elements.
+	for i := 0; i < 10000; i++ {
+		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
+	}
+	for i := 0; i < b.N; i++ {
+		m.Keys()
+	}
+}
