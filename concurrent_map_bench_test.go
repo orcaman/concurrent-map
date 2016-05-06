@@ -13,16 +13,16 @@ func BenchmarkSingleInsertAbsent(b *testing.B) {
 	m := New()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		m.Set(strconv.Itoa(i), "value")
+		m.Set(Integer(i), "value")
 	}
 }
 
 func BenchmarkSingleInsertPresent(b *testing.B) {
 	m := New()
-	m.Set("key", "value")
+	m.Set(String("key"), "value")
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		m.Set("key", "value")
+		m.Set(String("key"), "value")
 	}
 }
 
@@ -56,7 +56,7 @@ func BenchmarkMultiInsertSame(b *testing.B) {
 	m := New()
 	finished := make(chan struct{}, b.N)
 	_, set := GetSet(m, finished)
-	m.Set("key", "value")
+	m.Set(String("key"), "value")
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		set("key", "value")
@@ -70,7 +70,7 @@ func BenchmarkMultiGetSame(b *testing.B) {
 	m := New()
 	finished := make(chan struct{}, b.N)
 	get, _ := GetSet(m, finished)
-	m.Set("key", "value")
+	m.Set(String("key"), "value")
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		get("key", "value")
@@ -84,7 +84,7 @@ func benchmarkMultiGetSetDifferent(b *testing.B) {
 	m := New()
 	finished := make(chan struct{}, 2*b.N)
 	get, set := GetSet(m, finished)
-	m.Set("-1", "value")
+	m.Set(String("-1"), "value")
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		set(strconv.Itoa(i-1), "value")
@@ -113,7 +113,7 @@ func benchmarkMultiGetSetBlock(b *testing.B) {
 	finished := make(chan struct{}, 2*b.N)
 	get, set := GetSet(m, finished)
 	for i := 0; i < b.N; i++ {
-		m.Set(strconv.Itoa(i%100), "value")
+		m.Set(Integer(i%100), "value")
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -141,12 +141,12 @@ func BenchmarkMultiGetSetBlock_256_Shard(b *testing.B) {
 func GetSet(m ConcurrentMap, finished chan struct{}) (set func(key, value string), get func(key, value string)) {
 	return func(key, value string) {
 			for i := 0; i < 10; i++ {
-				m.Get(key)
+				m.Get(String(key))
 			}
 			finished <- struct{}{}
 		}, func(key, value string) {
 			for i := 0; i < 10; i++ {
-				m.Set(key, value)
+				m.Set(String(key), value)
 			}
 			finished <- struct{}{}
 		}

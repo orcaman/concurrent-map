@@ -27,8 +27,8 @@ func TestInsert(t *testing.T) {
 	elephant := Animal{"elephant"}
 	monkey := Animal{"monkey"}
 
-	m.Set("elephant", elephant)
-	m.Set("monkey", monkey)
+	m.Set(String("elephant"), elephant)
+	m.Set(String("monkey"), monkey)
 
 	if m.Count() != 2 {
 		t.Error("map should contain exactly two elements.")
@@ -40,8 +40,8 @@ func TestInsertAbsent(t *testing.T) {
 	elephant := Animal{"elephant"}
 	monkey := Animal{"monkey"}
 
-	m.SetIfAbsent("elephant", elephant)
-	if ok := m.SetIfAbsent("elephant", monkey); ok {
+	m.SetIfAbsent(String("elephant"), elephant)
+	if ok := m.SetIfAbsent(String("elephant"), monkey); ok {
 		t.Error("map set a new value even the entry is already present")
 	}
 }
@@ -50,7 +50,7 @@ func TestGet(t *testing.T) {
 	m := New()
 
 	// Get a missing element.
-	val, ok := m.Get("Money")
+	val, ok := m.Get(String("Money"))
 
 	if ok == true {
 		t.Error("ok should be false when item is missing from map.")
@@ -61,11 +61,11 @@ func TestGet(t *testing.T) {
 	}
 
 	elephant := Animal{"elephant"}
-	m.Set("elephant", elephant)
+	m.Set(String("elephant"), elephant)
 
 	// Retrieve inserted element.
 
-	tmp, ok := m.Get("elephant")
+	tmp, ok := m.Get(String("elephant"))
 	elephant = tmp.(Animal) // Type assertion.
 
 	if ok == false {
@@ -85,14 +85,14 @@ func TestHas(t *testing.T) {
 	m := New()
 
 	// Get a missing element.
-	if m.Has("Money") == true {
+	if m.Has(String("Money")) == true {
 		t.Error("element shouldn't exists")
 	}
 
 	elephant := Animal{"elephant"}
-	m.Set("elephant", elephant)
+	m.Set(String("elephant"), elephant)
 
-	if m.Has("elephant") == false {
+	if m.Has(String("elephant")) == false {
 		t.Error("element exists, expecting Has to return True.")
 	}
 }
@@ -101,15 +101,15 @@ func TestRemove(t *testing.T) {
 	m := New()
 
 	monkey := Animal{"monkey"}
-	m.Set("monkey", monkey)
+	m.Set(String("monkey"), monkey)
 
-	m.Remove("monkey")
+	m.Remove(String("monkey"))
 
 	if m.Count() != 0 {
 		t.Error("Expecting count to be zero once item was removed.")
 	}
 
-	temp, ok := m.Get("monkey")
+	temp, ok := m.Get(String("monkey"))
 
 	if ok != false {
 		t.Error("Expecting ok to be false for missing items.")
@@ -120,13 +120,13 @@ func TestRemove(t *testing.T) {
 	}
 
 	// Remove a none existing element.
-	m.Remove("noone")
+	m.Remove(String("noone"))
 }
 
 func TestCount(t *testing.T) {
 	m := New()
 	for i := 0; i < 100; i++ {
-		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
+		m.Set(Integer(i), Animal{strconv.Itoa(i)})
 	}
 
 	if m.Count() != 100 {
@@ -141,7 +141,7 @@ func TestIsEmpty(t *testing.T) {
 		t.Error("new map should be empty")
 	}
 
-	m.Set("elephant", Animal{"elephant"})
+	m.Set(String("elephant"), Animal{"elephant"})
 
 	if m.IsEmpty() != false {
 		t.Error("map shouldn't be empty.")
@@ -153,7 +153,7 @@ func TestIterator(t *testing.T) {
 
 	// Insert 100 elements.
 	for i := 0; i < 100; i++ {
-		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
+		m.Set(Integer(i), Animal{strconv.Itoa(i)})
 	}
 
 	counter := 0
@@ -177,7 +177,7 @@ func TestBufferedIterator(t *testing.T) {
 
 	// Insert 100 elements.
 	for i := 0; i < 100; i++ {
-		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
+		m.Set(Integer(i), Animal{strconv.Itoa(i)})
 	}
 
 	counter := 0
@@ -201,7 +201,7 @@ func TestItems(t *testing.T) {
 
 	// Insert 100 elements.
 	for i := 0; i < 100; i++ {
-		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
+		m.Set(Integer(i), Animal{strconv.Itoa(i)})
 	}
 
 	items := m.Items()
@@ -221,10 +221,10 @@ func TestConcurrent(t *testing.T) {
 	go func() {
 		for i := 0; i < iterations/2; i++ {
 			// Add item to map.
-			m.Set(strconv.Itoa(i), i)
+			m.Set(Integer(i), i)
 
 			// Retrieve item from map.
-			val, _ := m.Get(strconv.Itoa(i))
+			val, _ := m.Get(Integer(i))
 
 			// Write to channel inserted value.
 			ch <- val.(int)
@@ -234,10 +234,10 @@ func TestConcurrent(t *testing.T) {
 	go func() {
 		for i := iterations / 2; i < iterations; i++ {
 			// Add item to map.
-			m.Set(strconv.Itoa(i), i)
+			m.Set(Integer(i), i)
 
 			// Retrieve item from map.
-			val, _ := m.Get(strconv.Itoa(i))
+			val, _ := m.Get(Integer(i))
 
 			// Write to channel inserted value.
 			ch <- val.(int)
@@ -275,8 +275,8 @@ func TestJsonMarshal(t *testing.T) {
 	defer func() { SHARD_COUNT = 32 }()
 	expected := "{\"a\":1,\"b\":2}"
 	m := New()
-	m.Set("a", 1)
-	m.Set("b", 2)
+	m.Set(String("a"), 1)
+	m.Set(String("b"), 2)
 	j, err := json.Marshal(m)
 	if err != nil {
 		t.Error(err)
