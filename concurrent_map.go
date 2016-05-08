@@ -34,6 +34,15 @@ func (m ConcurrentMap) GetShard(key string) *ConcurrentMapShared {
 	return m[uint(hasher.Sum32())%uint(SHARD_COUNT)]
 }
 
+func (m ConcurrentMap) MSet(data map[string]interface{}) {
+	for key, value := range data {
+		shard := m.GetShard(key)
+		shard.Lock()
+		shard.items[key] = value
+		shard.Unlock()
+	}
+}
+
 // Sets the given value under the specified key.
 func (m *ConcurrentMap) Set(key string, value interface{}) {
 	// Get map shard.
