@@ -272,7 +272,9 @@ func TestConcurrent(t *testing.T) {
 
 func TestJsonMarshal(t *testing.T) {
 	SHARD_COUNT = 2
-	defer func() { SHARD_COUNT = 32 }()
+	defer func() {
+		SHARD_COUNT = 32
+	}()
 	expected := "{\"a\":1,\"b\":2}"
 	m := New()
 	m.Set("a", 1)
@@ -285,5 +287,32 @@ func TestJsonMarshal(t *testing.T) {
 	if string(j) != expected {
 		t.Error("json", string(j), "differ from expected", expected)
 		return
+	}
+}
+
+func TestKeys(t *testing.T) {
+	m := New()
+
+	// Insert 100 elements.
+	for i := 0; i < 100; i++ {
+		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
+	}
+
+	keys := m.Keys()
+	if len(keys) != 100 {
+		t.Error("We should have counted 100 elements.")
+	}
+}
+
+func TestMInsert(t *testing.T) {
+	animals := map[string]interface{}{
+		"elephant": Animal{"elephant"},
+		"monkey":   Animal{"monkey"},
+	}
+	m := New()
+	m.MSet(animals)
+
+	if m.Count() != 2 {
+		t.Error("map should contain exactly two elements.")
 	}
 }
