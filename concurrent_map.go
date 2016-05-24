@@ -125,15 +125,21 @@ type Tuple struct {
 func (m ConcurrentMap) Iter() <-chan Tuple {
 	ch := make(chan Tuple)
 	go func() {
+		wg := sync.WaitGroup{}
+		wg.Add(SHARD_COUNT)
 		// Foreach shard.
 		for _, shard := range m {
-			// Foreach key, value pair.
-			shard.RLock()
-			for key, val := range shard.items {
-				ch <- Tuple{key, val}
-			}
-			shard.RUnlock()
+			go func(shard *ConcurrentMapShared) {
+				// Foreach key, value pair.
+				shard.RLock()
+				for key, val := range shard.items {
+					ch <- Tuple{key, val}
+				}
+				shard.RUnlock()
+				wg.Done()
+			}(shard)
 		}
+		wg.Wait()
 		close(ch)
 	}()
 	return ch
@@ -143,15 +149,21 @@ func (m ConcurrentMap) Iter() <-chan Tuple {
 func (m ConcurrentMap) IterBuffered() <-chan Tuple {
 	ch := make(chan Tuple, m.Count())
 	go func() {
+		wg := sync.WaitGroup{}
+		wg.Add(SHARD_COUNT)
 		// Foreach shard.
 		for _, shard := range m {
-			// Foreach key, value pair.
-			shard.RLock()
-			for key, val := range shard.items {
-				ch <- Tuple{key, val}
-			}
-			shard.RUnlock()
+			go func(shard *ConcurrentMapShared) {
+				// Foreach key, value pair.
+				shard.RLock()
+				for key, val := range shard.items {
+					ch <- Tuple{key, val}
+				}
+				shard.RUnlock()
+				wg.Done()
+			}(shard)
 		}
+		wg.Wait()
 		close(ch)
 	}()
 	return ch
@@ -175,14 +187,20 @@ func (m ConcurrentMap) Keys() []string {
 	ch := make(chan string, count)
 	go func() {
 		// Foreach shard.
+		wg := sync.WaitGroup{}
+		wg.Add(SHARD_COUNT)
 		for _, shard := range m {
-			// Foreach key, value pair.
-			shard.RLock()
-			for key, _ := range shard.items {
-				ch <- key
-			}
-			shard.RUnlock()
+			go func(shard *ConcurrentMapShared) {
+				// Foreach key, value pair.
+				shard.RLock()
+				for key := range shard.items {
+					ch <- key
+				}
+				shard.RUnlock()
+				wg.Done()
+			}(shard)
 		}
+		wg.Wait()
 		close(ch)
 	}()
 
