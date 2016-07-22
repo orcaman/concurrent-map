@@ -272,12 +272,8 @@ func TestConcurrent(t *testing.T) {
 }
 
 func TestJsonMarshal(t *testing.T) {
-	SHARD_COUNT = 2
-	defer func() {
-		SHARD_COUNT = 32
-	}()
 	expected := "{\"a\":1,\"b\":2}"
-	m := New()
+	m := New(2)
 	m.Set("a", 1)
 	m.Set("b", 2)
 	j, err := json.Marshal(m)

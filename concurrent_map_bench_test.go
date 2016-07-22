@@ -3,6 +3,8 @@ package cmap
 import "testing"
 import "strconv"
 
+var m ConcurrentMap
+
 func BenchmarkItems(b *testing.B) {
 	m := New()
 
@@ -177,10 +179,8 @@ func GetSet(m ConcurrentMap, finished chan struct{}) (set func(key, value string
 }
 
 func runWithShards(bench func(b *testing.B), b *testing.B, shardsCount int) {
-	oldShardsCount := SHARD_COUNT
-	SHARD_COUNT = shardsCount
+	m = New(shardsCount)
 	bench(b)
-	SHARD_COUNT = oldShardsCount
 }
 
 func BenchmarkKeys(b *testing.B) {
