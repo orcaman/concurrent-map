@@ -162,7 +162,7 @@ func BenchmarkMultiGetSetBlock_256_Shard(b *testing.B) {
 	runWithShards(benchmarkMultiGetSetBlock, b, 256)
 }
 
-func GetSet(m ConcurrentMap, finished chan struct{}) (set func(key, value string), get func(key, value string)) {
+func GetSet(m *ConcurrentMap, finished chan struct{}) (set func(key, value string), get func(key, value string)) {
 	return func(key, value string) {
 			for i := 0; i < 10; i++ {
 				m.Get(key)
