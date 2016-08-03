@@ -2,9 +2,12 @@ package cmap
 
 import (
 	"encoding/json"
+	"hash"
 	"hash/fnv"
 	"sync"
 )
+
+var hashPool = new(sync.Pool)
 
 var SHARD_COUNT = 32
 
@@ -29,9 +32,18 @@ func New() ConcurrentMap {
 
 // Returns shard under given key
 func (m ConcurrentMap) GetShard(key string) *ConcurrentMapShared {
-	hasher := fnv.New32()
+	hasherAsInterface := hashPool.Get()
+	var hasher hash.Hash32
+	if hasherAsInterface == nil {
+		hasher = fnv.New32()
+	} else {
+		hasher = hasherAsInterface.(hash.Hash32)
+		hasher.Reset()
+	}
 	hasher.Write([]byte(key))
-	return m[uint(hasher.Sum32())%uint(SHARD_COUNT)]
+	sum := hasher.Sum32()
+	hashPool.Put(hasher)
+	return m[uint(sum)%uint(SHARD_COUNT)]
 }
 
 func (m ConcurrentMap) MSet(data map[string]interface{}) {
