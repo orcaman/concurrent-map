@@ -4,13 +4,17 @@ import (
 	"encoding/json"
 	"hash/fnv"
 	"sync"
+	"hash"
 )
 
 var SHARD_COUNT = 32
 
 // A "thread" safe map of type string:Anything.
 // To avoid lock bottlenecks this map is dived to several (SHARD_COUNT) map shards.
-type ConcurrentMap []*ConcurrentMapShared
+type ConcurrentMap struct {
+	hashPool *sync.Pool
+	shards []*ConcurrentMapShared
+}
 
 // A "thread" safe string to anything map.
 type ConcurrentMapShared struct {
@@ -19,19 +23,30 @@ type ConcurrentMapShared struct {
 }
 
 // Creates a new concurrent map.
-func New() ConcurrentMap {
-	m := make(ConcurrentMap, SHARD_COUNT)
+func New() *ConcurrentMap {
+	m := new(ConcurrentMap)
+	m.hashPool = new(sync.Pool)
+	m.shards = make([]*ConcurrentMapShared, SHARD_COUNT)
 	for i := 0; i < SHARD_COUNT; i++ {
-		m[i] = &ConcurrentMapShared{items: make(map[string]interface{})}
+		m.shards[i] = &ConcurrentMapShared{items: make(map[string]interface{})}
 	}
 	return m
 }
 
 // Returns shard under given key
 func (m ConcurrentMap) GetShard(key string) *ConcurrentMapShared {
-	hasher := fnv.New32()
+	hasherAsInterface := m.hashPool.Get()
+	var hasher hash.Hash32
+	if hasherAsInterface == nil {
+		hasher = fnv.New32()
+	} else {
+		hasher = hasherAsInterface.(hash.Hash32)
+		hasher.Reset()
+	}
 	hasher.Write([]byte(key))
-	return m[uint(hasher.Sum32())%uint(SHARD_COUNT)]
+	sum := hasher.Sum32()
+	m.hashPool.Put(hasher)
+	return m.shards[uint(sum)%uint(SHARD_COUNT)]
 }
 
 func (m ConcurrentMap) MSet(data map[string]interface{}) {
@@ -80,7 +95,7 @@ func (m ConcurrentMap) Get(key string) (interface{}, bool) {
 func (m ConcurrentMap) Count() int {
 	count := 0
 	for i := 0; i < SHARD_COUNT; i++ {
-		shard := m[i]
+		shard := m.shards[i]
 		shard.RLock()
 		count += len(shard.items)
 		shard.RUnlock()
@@ -128,7 +143,7 @@ func (m ConcurrentMap) Iter() <-chan Tuple {
 		wg := sync.WaitGroup{}
 		wg.Add(SHARD_COUNT)
 		// Foreach shard.
-		for _, shard := range m {
+		for _, shard := range m.shards {
 			go func(shard *ConcurrentMapShared) {
 				// Foreach key, value pair.
 				shard.RLock()
@@ -152,7 +167,7 @@ func (m ConcurrentMap) IterBuffered() <-chan Tuple {
 		wg := sync.WaitGroup{}
 		wg.Add(SHARD_COUNT)
 		// Foreach shard.
-		for _, shard := range m {
+		for _, shard := range m.shards {
 			go func(shard *ConcurrentMapShared) {
 				// Foreach key, value pair.
 				shard.RLock()
@@ -189,7 +204,7 @@ func (m ConcurrentMap) Keys() []string {
 		// Foreach shard.
 		wg := sync.WaitGroup{}
 		wg.Add(SHARD_COUNT)
-		for _, shard := range m {
+		for _, shard := range m.shards {
 			go func(shard *ConcurrentMapShared) {
 				// Foreach key, value pair.
 				shard.RLock()
