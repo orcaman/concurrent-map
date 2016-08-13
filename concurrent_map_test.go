@@ -2,6 +2,7 @@ package cmap
 
 import (
 	"encoding/json"
+	"hash/fnv"
 	"sort"
 	"strconv"
 	"testing"
@@ -314,5 +315,15 @@ func TestMInsert(t *testing.T) {
 
 	if m.Count() != 2 {
 		t.Error("map should contain exactly two elements.")
+	}
+}
+
+func TestFnv32(t *testing.T) {
+	key := []byte("ABC")
+
+	hasher := fnv.New32()
+	hasher.Write(key)
+	if fnv32(key) != hasher.Sum32() {
+		t.Errorf("Bundled fnv32 produced %d, expected result from hash/fnv32 is %d", fnv32(key), hasher.Sum32())
 	}
 }
