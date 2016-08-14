@@ -327,3 +327,56 @@ func TestFnv32(t *testing.T) {
 		t.Errorf("Bundled fnv32 produced %d, expected result from hash/fnv32 is %d", fnv32(key), hasher.Sum32())
 	}
 }
+
+func TestUpsert(t *testing.T) {
+	dolphin := Animal{"dolphin"}
+	whale := Animal{"whale"}
+	tiger := Animal{"tiger"}
+	lion := Animal{"lion"}
+
+	cb := func(exists bool, valueInMap interface{}, newValue interface{}) interface{} {
+		nv := newValue.(Animal)
+		if !exists {
+			return []Animal{nv}
+		}
+		res := valueInMap.([]Animal)
+		return append(res, nv)
+	}
+
+	m := New()
+	m.Set("marine", []Animal{dolphin})
+	m.Upsert("marine", whale, cb)
+	m.Upsert("predator", tiger, cb)
+	m.Upsert("predator", lion, cb)
+
+	if m.Count() != 2 {
+		t.Error("map should contain exactly two elements.")
+	}
+
+	compare := func(a, b []Animal) bool {
+		if a == nil || b == nil {
+			return false
+		}
+
+		if len(a) != len(b) {
+			return false
+		}
+
+		for i, v := range a {
+			if v != b[i] {
+				return false
+			}
+		}
+		return true
+	}
+
+	marineAnimals, ok := m.Get("marine")
+	if !ok || !compare(marineAnimals.([]Animal), []Animal{dolphin, whale}) {
+		t.Error("Set, then Upsert failed")
+	}
+
+	predators, ok := m.Get("predator")
+	if !ok || !compare(predators.([]Animal), []Animal{tiger, lion}) {
+		t.Error("Upsert, then Upsert failed")
+	}
+}

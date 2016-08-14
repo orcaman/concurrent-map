@@ -50,6 +50,23 @@ func (m *ConcurrentMap) Set(key string, value interface{}) {
 	shard.Unlock()
 }
 
+// Callback to return new element to be inserted into the map
+// It is called while lock is held, therefore it MUST NOT
+// try to access other keys in same map, as it can lead to deadlock since
+// Go sync.RWLock is not reentrant
+type UpsertCb func(exist bool, valueInMap interface{}, newValue interface{}) interface{}
+
+// Insert or Update - updates existing element or inserts a new one using UpsertCb
+func (m *ConcurrentMap) Upsert(key string, value interface{}, cb UpsertCb) (res interface{}) {
+	shard := m.GetShard(key)
+	shard.Lock()
+	v, ok := shard.items[key]
+	res = cb(ok, v, value)
+	shard.items[key] = res
+	shard.Unlock()
+	return res
+}
+
 // Sets the given value under the specified key if no value was associated with it.
 func (m *ConcurrentMap) SetIfAbsent(key string, value interface{}) bool {
 	// Get map shard.
