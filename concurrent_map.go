@@ -9,7 +9,7 @@ var SHARD_COUNT = 32
 
 // A "thread" safe map of type string:Anything.
 // To avoid lock bottlenecks this map is dived to several (SHARD_COUNT) map shards.
-type ConcurrentMap []*ConcurrentMapShared
+type ConcurrentMap []ConcurrentMapShared
 
 // A "thread" safe string to anything map.
 type ConcurrentMapShared struct {
@@ -21,7 +21,7 @@ type ConcurrentMapShared struct {
 func New() ConcurrentMap {
 	m := make(ConcurrentMap, SHARD_COUNT)
 	for i := 0; i < SHARD_COUNT; i++ {
-		m[i] = &ConcurrentMapShared{items: make(map[string]interface{})}
+		m[i] = ConcurrentMapShared{items: make(map[string]interface{})}
 	}
 	return m
 }
@@ -29,7 +29,7 @@ func New() ConcurrentMap {
 // Returns shard under given key
 func (m ConcurrentMap) GetShard(key string) *ConcurrentMapShared {
 	sum := fnv32([]byte(key))
-	return m[uint(sum)%uint(SHARD_COUNT)]
+	return &m[uint(sum)%uint(SHARD_COUNT)]
 }
 
 func (m ConcurrentMap) MSet(data map[string]interface{}) {
@@ -126,7 +126,7 @@ func (m ConcurrentMap) Iter() <-chan Tuple {
 		wg := sync.WaitGroup{}
 		wg.Add(SHARD_COUNT)
 		// Foreach shard.
-		for _, shard := range m {
+		for idx := range m {
 			go func(shard *ConcurrentMapShared) {
 				// Foreach key, value pair.
 				shard.RLock()
@@ -135,7 +135,7 @@ func (m ConcurrentMap) Iter() <-chan Tuple {
 				}
 				shard.RUnlock()
 				wg.Done()
-			}(shard)
+			}(&m[idx])
 		}
 		wg.Wait()
 		close(ch)
@@ -150,7 +150,7 @@ func (m ConcurrentMap) IterBuffered() <-chan Tuple {
 		wg := sync.WaitGroup{}
 		wg.Add(SHARD_COUNT)
 		// Foreach shard.
-		for _, shard := range m {
+		for idx := range m {
 			go func(shard *ConcurrentMapShared) {
 				// Foreach key, value pair.
 				shard.RLock()
@@ -159,7 +159,7 @@ func (m ConcurrentMap) IterBuffered() <-chan Tuple {
 				}
 				shard.RUnlock()
 				wg.Done()
-			}(shard)
+			}(&m[idx])
 		}
 		wg.Wait()
 		close(ch)
@@ -187,7 +187,7 @@ func (m ConcurrentMap) Keys() []string {
 		// Foreach shard.
 		wg := sync.WaitGroup{}
 		wg.Add(SHARD_COUNT)
-		for _, shard := range m {
+		for idx := range m {
 			go func(shard *ConcurrentMapShared) {
 				// Foreach key, value pair.
 				shard.RLock()
@@ -196,7 +196,7 @@ func (m ConcurrentMap) Keys() []string {
 				}
 				shard.RUnlock()
 				wg.Done()
-			}(shard)
+			}(&m[idx])
 		}
 		wg.Wait()
 		close(ch)
