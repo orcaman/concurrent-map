@@ -123,6 +123,17 @@ func (m *ConcurrentMap) Remove(key string) {
 	shard.Unlock()
 }
 
+// Removes an element from the map and returns it
+func (m *ConcurrentMap) Pop(key string) (v interface{}, exists bool) {
+	// Try to get shard.
+	shard := m.GetShard(key)
+	shard.Lock()
+	v, exists = shard.items[key]
+	delete(shard.items, key)
+	shard.Unlock()
+	return v, exists
+}
+
 // Checks if map is empty.
 func (m *ConcurrentMap) IsEmpty() bool {
 	return m.Count() == 0
