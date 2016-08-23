@@ -28,8 +28,7 @@ func New() ConcurrentMap {
 
 // Returns shard under given key
 func (m ConcurrentMap) GetShard(key string) *ConcurrentMapShared {
-	sum := fnv32([]byte(key))
-	return m[uint(sum)%uint(SHARD_COUNT)]
+	return m[uint(fnv32(key))%uint(SHARD_COUNT)]
 }
 
 func (m ConcurrentMap) MSet(data map[string]interface{}) {
@@ -269,12 +268,12 @@ func (m ConcurrentMap) MarshalJSON() ([]byte, error) {
 	return json.Marshal(tmp)
 }
 
-func fnv32(key []byte) uint32 {
+func fnv32(key string) uint32 {
 	hash := uint32(2166136261)
-	prime32 := uint32(16777619)
-	for _, c := range key {
+	const prime32 = uint32(16777619)
+	for i := 0; i < len(key); i++ {
 		hash *= prime32
-		hash ^= uint32(c)
+		hash ^= uint32(key[i])
 	}
 	return hash
 }

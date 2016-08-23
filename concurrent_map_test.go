@@ -386,8 +386,8 @@ func TestFnv32(t *testing.T) {
 
 	hasher := fnv.New32()
 	hasher.Write(key)
-	if fnv32(key) != hasher.Sum32() {
-		t.Errorf("Bundled fnv32 produced %d, expected result from hash/fnv32 is %d", fnv32(key), hasher.Sum32())
+	if fnv32(string(key)) != hasher.Sum32() {
+		t.Errorf("Bundled fnv32 produced %d, expected result from hash/fnv32 is %d", fnv32(string(key)), hasher.Sum32())
 	}
 }
 
