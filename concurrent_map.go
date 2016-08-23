@@ -8,6 +8,7 @@ import (
 )
 
 var hashPool = new(sync.Pool)
+var bufPool = new(sync.Pool)
 
 var SHARD_COUNT = 32
 
@@ -40,7 +41,23 @@ func (m ConcurrentMap) GetShard(key string) *ConcurrentMapShared {
 		hasher = hasherAsInterface.(hash.Hash32)
 		hasher.Reset()
 	}
-	hasher.Write([]byte(key))
+	const bufSize = 1024
+	if l := len(key); l <= bufSize {
+		bufAsInterface := bufPool.Get()
+		var buf []byte
+		if bufAsInterface == nil {
+			buf = make([]byte, bufSize)
+			bufAsInterface = buf
+		} else {
+			buf = bufAsInterface.([]byte)
+		}
+		subBuf := buf[:l]
+		copy(subBuf, key)
+		hasher.Write(subBuf)
+		bufPool.Put(bufAsInterface)
+	} else {
+		hasher.Write([]byte(key))
+	}
 	sum := hasher.Sum32()
 	hashPool.Put(hasher)
 	return m[uint(sum)%uint(SHARD_COUNT)]
