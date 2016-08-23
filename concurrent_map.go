@@ -2,8 +2,6 @@ package cmap
 
 import (
 	"encoding/json"
-	"hash"
-	"hash/fnv"
 	"sync"
 )
 
@@ -33,34 +31,7 @@ func New() ConcurrentMap {
 
 // Returns shard under given key
 func (m ConcurrentMap) GetShard(key string) *ConcurrentMapShared {
-	hasherAsInterface := hashPool.Get()
-	var hasher hash.Hash32
-	if hasherAsInterface == nil {
-		hasher = fnv.New32()
-	} else {
-		hasher = hasherAsInterface.(hash.Hash32)
-		hasher.Reset()
-	}
-	const bufSize = 1024
-	if l := len(key); l <= bufSize {
-		bufAsInterface := bufPool.Get()
-		var buf []byte
-		if bufAsInterface == nil {
-			buf = make([]byte, bufSize)
-			bufAsInterface = buf
-		} else {
-			buf = bufAsInterface.([]byte)
-		}
-		subBuf := buf[:l]
-		copy(subBuf, key)
-		hasher.Write(subBuf)
-		bufPool.Put(bufAsInterface)
-	} else {
-		hasher.Write([]byte(key))
-	}
-	sum := hasher.Sum32()
-	hashPool.Put(hasher)
-	return m[uint(sum)%uint(SHARD_COUNT)]
+	return m[uint(fnv32(key))%uint(SHARD_COUNT)]
 }
 
 func (m ConcurrentMap) MSet(data map[string]interface{}) {
@@ -79,6 +50,23 @@ func (m *ConcurrentMap) Set(key string, value interface{}) {
 	shard.Lock()
 	shard.items[key] = value
 	shard.Unlock()
+}
+
+// Callback to return new element to be inserted into the map
+// It is called while lock is held, therefore it MUST NOT
+// try to access other keys in same map, as it can lead to deadlock since
+// Go sync.RWLock is not reentrant
+type UpsertCb func(exist bool, valueInMap interface{}, newValue interface{}) interface{}
+
+// Insert or Update - updates existing element or inserts a new one using UpsertCb
+func (m *ConcurrentMap) Upsert(key string, value interface{}, cb UpsertCb) (res interface{}) {
+	shard := m.GetShard(key)
+	shard.Lock()
+	v, ok := shard.items[key]
+	res = cb(ok, v, value)
+	shard.items[key] = res
+	shard.Unlock()
+	return res
 }
 
 // Sets the given value under the specified key if no value was associated with it.
@@ -135,6 +123,17 @@ func (m *ConcurrentMap) Remove(key string) {
 	shard.Lock()
 	delete(shard.items, key)
 	shard.Unlock()
+}
+
+// Removes an element from the map and returns it
+func (m *ConcurrentMap) Pop(key string) (v interface{}, exists bool) {
+	// Try to get shard.
+	shard := m.GetShard(key)
+	shard.Lock()
+	v, exists = shard.items[key]
+	delete(shard.items, key)
+	shard.Unlock()
+	return v, exists
 }
 
 // Checks if map is empty.
@@ -210,6 +209,25 @@ func (m ConcurrentMap) Items() map[string]interface{} {
 	return tmp
 }
 
+// Iterator callback,called for every key,value found in
+// maps. RLock is held for all calls for a given shard
+// therefore callback sess consistent view of a shard,
+// but not across the shards
+type IterCb func(key string, v interface{})
+
+// Callback based iterator, cheapest way to read
+// all elements in a map.
+func (m *ConcurrentMap) IterCb(fn IterCb) {
+	for idx := range *m {
+		shard := (*m)[idx]
+		shard.RLock()
+		for key, value := range shard.items {
+			fn(key, value)
+		}
+		shard.RUnlock()
+	}
+}
+
 // Return all keys as []string
 func (m ConcurrentMap) Keys() []string {
 	count := m.Count()
@@ -251,6 +269,16 @@ func (m ConcurrentMap) MarshalJSON() ([]byte, error) {
 		tmp[item.Key] = item.Val
 	}
 	return json.Marshal(tmp)
+}
+
+func fnv32(key string) uint32 {
+	hash := uint32(2166136261)
+	const prime32 = uint32(16777619)
+	for i := 0; i < len(key); i++ {
+		hash *= prime32
+		hash ^= uint32(key[i])
+	}
+	return hash
 }
 
 // Concurrent map uses Interface{} as its value, therefor JSON Unmarshal
