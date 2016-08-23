@@ -237,6 +237,29 @@ func TestBufferedIterator(t *testing.T) {
 	}
 }
 
+func TestIterCb(t *testing.T) {
+	m := New()
+
+	// Insert 100 elements.
+	for i := 0; i < 100; i++ {
+		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
+	}
+
+	counter := 0
+	// Iterate over elements.
+	m.IterCb(func(key string, v interface{}) {
+		_, ok := v.(Animal)
+		if !ok {
+			t.Error("Expecting an animal object")
+		}
+
+		counter++
+	})
+	if counter != 100 {
+		t.Error("We should have counted 100 elements.")
+	}
+}
+
 func TestItems(t *testing.T) {
 	m := New()
 
