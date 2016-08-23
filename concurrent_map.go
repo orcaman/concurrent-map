@@ -5,9 +5,6 @@ import (
 	"sync"
 )
 
-var hashPool = new(sync.Pool)
-var bufPool = new(sync.Pool)
-
 var SHARD_COUNT = 32
 
 // A "thread" safe map of type string:Anything.
