@@ -124,6 +124,46 @@ func TestRemove(t *testing.T) {
 	m.Remove("noone")
 }
 
+func TestPop(t *testing.T) {
+	m := New()
+
+	monkey := Animal{"monkey"}
+	m.Set("monkey", monkey)
+
+	v, exists := m.Pop("monkey")
+
+	if !exists {
+		t.Error("Pop didn't find a monkey.")
+	}
+
+	m1, ok := v.(Animal)
+
+	if !ok || m1 != monkey {
+		t.Error("Pop found something else, but monkey.")
+	}
+
+	v2, exists2 := m.Pop("monkey")
+	m1, ok = v2.(Animal)
+
+	if exists2 || ok || m1 == monkey {
+		t.Error("Pop keeps finding monkey")
+	}
+
+	if m.Count() != 0 {
+		t.Error("Expecting count to be zero once item was Pop'ed.")
+	}
+
+	temp, ok := m.Get("monkey")
+
+	if ok != false {
+		t.Error("Expecting ok to be false for missing items.")
+	}
+
+	if temp != nil {
+		t.Error("Expecting item to be nil after its removal.")
+	}
+}
+
 func TestCount(t *testing.T) {
 	m := New()
 	for i := 0; i < 100; i++ {
