@@ -79,6 +79,20 @@ func (m *ConcurrentMap) SetIfAbsent(key string, value interface{}) bool {
 	return !ok
 }
 
+// Sets the given value under the specified key if oldValue was associated with it.
+func (m *ConcurrentMap) SetIfPresent(key string, newValue, oldValue interface{}) bool {
+	// Get map shard.
+	shard := m.GetShard(key)
+	shard.Lock()
+	val, ok := shard.items[key]
+	ok = ok && (val == oldValue)
+	if ok {
+		shard.items[key] = newValue
+	}
+	shard.Unlock()
+	return ok
+}
+
 // Retrieves an element from map under given key.
 func (m ConcurrentMap) Get(key string) (interface{}, bool) {
 	// Get shard
