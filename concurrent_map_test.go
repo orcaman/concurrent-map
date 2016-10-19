@@ -275,6 +275,7 @@ func TestJsonMarshal(t *testing.T) {
 	m := New(2)
 	m.Set("a", 1)
 	m.Set("b", 2)
+	m.Set("c", 3)
 	j, err := json.Marshal(m)
 	if err != nil {
 		t.Error(err)

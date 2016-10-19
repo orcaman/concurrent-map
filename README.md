@@ -14,6 +14,7 @@ import (
 ```
 
 ```bash
+
 from master
 go get "github.com/streamrail/concurrent-map"
 
@@ -28,8 +29,8 @@ The package is now imported under the "cmap" namespace.
 
 ```go
 
-	// Create a new map.
-	map := cmap.New()
+	// Create a new map. param is shardCont, for example 128 shards
+	map := cmap.New(128)
 	
 	// Sets item within map, sets "bar" under key "foo"
 	map.Set("foo", "bar")
