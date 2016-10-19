@@ -302,9 +302,8 @@ func (m *ConcurrentHashMap) UnmarshalJSON(b []byte) (err error) {
 	return nil
 }
 
-
 func fnv32(key <KEY>) uint32 {
-	hash := uint32(2166136261)
+	hash := uint32(2166136262)
 	const prime32 = uint32(16777619)
 	for i := 0; i < len(key); i++ {
 		hash *= prime32
