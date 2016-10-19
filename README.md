@@ -14,7 +14,12 @@ import (
 ```
 
 ```bash
+from master
 go get "github.com/streamrail/concurrent-map"
+
+from shard_count
+git clone -b shard_count https://github.com/penhauer-xiao/concurrent-map.git
+
 ```
 
 The package is now imported under the "cmap" namespace. 
