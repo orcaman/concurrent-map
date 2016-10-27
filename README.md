@@ -63,6 +63,10 @@ in terminal run:
 for uint16  ITOA ==> strconv.Itoa(    E1 ==> )    INT ==>  int(   E2  ===> )
 mkdir ucmap && sed 's/PACKAGE/ucmap/g;s/ITOA/ strconv.Itoa\(/g;s/E1/\)/g;s/INT/int\(/g;s/E2/\)/g;s/KEY/uint16/g;s/VAL/string/g' concurrent_map_template.txt > ./ucmap/ucmap.go
 
+for uint16  ITOA ==> strconv.Itoa(    E1 ==> )    INT ==>  int(   E2  ===> )
+mkdir uimap && sed 's/PACKAGE/uimap/g;s/ITOA/ strconv.Itoa\(/g;s/E1/\)/g;s/INT/int\(/g;s/E2/\)/g;s/KEY/uint16/g;s/VAL/string/g' concurrent_map_template_interface.txt > ./uimap/uimap.go
+
+
 for int
 mkdir icmap && sed 's/PACKAGE/icmap/g;s/ITOA/ strconv.Itoa\(/g;s/E1/\)/g;s/INT//g;s/E2//g;s/KEY/int/g;s/VAL/string/g' concurrent_map_template.txt > ./icmap/icmap.go
 

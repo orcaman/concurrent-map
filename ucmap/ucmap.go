@@ -7,8 +7,8 @@ import (
 )
 
 type ConcurrentHashMap struct {
-	Shards     int
-	HashMap    ConcurrentMap
+	Shards  int
+	HashMap ConcurrentMap
 }
 
 // A "thread" safe map of type uint16:Anything.
@@ -22,17 +22,16 @@ type ConcurrentMapShared struct {
 }
 
 func New(shards int) *ConcurrentHashMap {
-    strconv.Itoa(shards)
-	m := &ConcurrentHashMap{Shards:shards,HashMap:make(ConcurrentMap, shards)}
+	strconv.Itoa(shards)
+	m := &ConcurrentHashMap{Shards: shards, HashMap: make(ConcurrentMap, shards)}
 	for i := 0; i < shards; i++ {
 		m.HashMap[i] = &ConcurrentMapShared{items: make(map[uint16]string)}
 	}
 	return m
 }
 
-
 func (m *ConcurrentHashMap) GetShard(key uint16) *ConcurrentMapShared {
-	return  m.HashMap[uint(fnv32( strconv.Itoa( int( key ) )))%uint(m.Shards)]
+	return m.HashMap[uint(fnv32(strconv.Itoa(int(key))))%uint(m.Shards)]
 }
 
 func (m *ConcurrentHashMap) MSet(data map[uint16]string) {
@@ -85,18 +84,17 @@ func (m *ConcurrentHashMap) SetIfAbsent(key uint16, value string) bool {
 
 // Sets the given value under the specified key if oldValue was associated with it.
 func (m *ConcurrentHashMap) SetIfPresent(key uint16, newValue, oldValue string) bool {
-		// Get map shard.
-		shard := m.GetShard(key)
-		shard.Lock()
-		val, ok := shard.items[key]
-		ok = ok && (val == oldValue)
-		if ok {
-			shard.items[key] = newValue
-		}
-		shard.Unlock()
-		return ok
+	// Get map shard.
+	shard := m.GetShard(key)
+	shard.Lock()
+	val, ok := shard.items[key]
+	ok = ok && (val == oldValue)
+	if ok {
+		shard.items[key] = newValue
+	}
+	shard.Unlock()
+	return ok
 }
-
 
 // Retrieves an element from map under given key.
 func (m ConcurrentHashMap) Get(key uint16) (string, bool) {
@@ -313,4 +311,3 @@ func fnv32(key string) uint32 {
 	}
 	return hash
 }
-
