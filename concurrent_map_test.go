@@ -443,3 +443,30 @@ func TestUpsert(t *testing.T) {
 		t.Error("Upsert, then Upsert failed")
 	}
 }
+
+func TestGetShardCountChange(t *testing.T) {
+	SHARD_COUNT = 32
+	m := New()
+
+	elephant := Animal{"elephant"}
+	m.Set("elephant", elephant)
+
+	SHARD_COUNT = 1
+
+	// Retrieve inserted element.
+
+	tmp, ok := m.Get("elephant")
+	elephant = tmp.(Animal) // Type assertion.
+
+	if ok == false {
+		t.Error("ok should be true for item stored within the map.")
+	}
+
+	if &elephant == nil {
+		t.Error("expecting an element, not null.")
+	}
+
+	if elephant.name != "elephant" {
+		t.Error("item was modified.")
+	}
+}
