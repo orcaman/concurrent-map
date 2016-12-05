@@ -249,9 +249,9 @@ func (m ConcurrentMap) Keys() []string {
 	}()
 
 	// Generate keys
-	keys := make([]string, count)
-	for i := 0; i < count; i++ {
-		keys[i] = <-ch
+	keys := make([]string, 0, count)
+	for k := range ch {
+		keys = append(keys, k)
 	}
 	return keys
 }
