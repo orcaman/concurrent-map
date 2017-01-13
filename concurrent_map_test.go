@@ -313,3 +313,27 @@ func TestMInsert(t *testing.T) {
 		t.Error("map should contain exactly two elements.")
 	}
 }
+
+func TestKeysWhenRemoving(t *testing.T) {
+	m := New()
+
+	// Insert 100000 elements.
+	Total := 100000
+	for i := 0; i < Total; i++ {
+		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
+	}
+
+	// Remove 10 elements concurrently.
+	Num := 10
+	for i := 0; i < Num; i++ {
+		go func(c *ConcurrentHashMap, n int) {
+			c.Remove(strconv.Itoa(n))
+		}(&m, i)
+	}
+	keys := m.Keys()
+	for _, k := range keys {
+		if k == "" {
+			t.Error("Empty keys returned")
+		}
+	}
+}

@@ -268,9 +268,9 @@ func (m ConcurrentHashMap) Keys() []KEY {
 	}()
 
 	// Generate keys
-	keys := make([]KEY, count)
-	for i := 0; i < count; i++ {
-		keys[i] = <-ch
+	keys := make([]KEY, 0, count)
+	for k := range ch {
+		keys = append(keys, k)
 	}
 	return keys
 }
