@@ -51,7 +51,7 @@ go test "github.com/orcaman/concurrent-map"
 
 Contributions are highly welcome. In order for a contribution to be merged, please follow these guidelines:
 - Open an issue and describe what you are after (fixing a bug, adding an enhancement, etc.).
-- According to the core team's feedback on the above mentioned issue, submit a pull request, depciting the changes and linking to the issue.
+- According to the core team's feedback on the above mentioned issue, submit a pull request, describing the changes and linking to the issue.
 - New code must have test coverage.
 - If the code is about performance issues, you must include benchmarks in the process (either in the issue or in the PR).
 - In general, we would like to keep `concurrent-map` as simple as possible and as similar to the native `map`. Please keep this in mind when opening issues.
