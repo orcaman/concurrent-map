@@ -148,50 +148,64 @@ type Tuple struct {
 //
 // Deprecated: using IterBuffered() will get a better performence
 func (m ConcurrentMap) Iter() <-chan Tuple {
+	chans := snapshot(&m)
 	ch := make(chan Tuple)
-	go func() {
-		wg := sync.WaitGroup{}
-		wg.Add(SHARD_COUNT)
-		// Foreach shard.
-		for _, shard := range m {
-			go func(shard *ConcurrentMapShared) {
-				// Foreach key, value pair.
-				shard.RLock()
-				for key, val := range shard.items {
-					ch <- Tuple{key, val}
-				}
-				shard.RUnlock()
-				wg.Done()
-			}(shard)
-		}
-		wg.Wait()
-		close(ch)
-	}()
+	go fanIn(chans, ch)
 	return ch
 }
 
 // Returns a buffered iterator which could be used in a for range loop.
 func (m ConcurrentMap) IterBuffered() <-chan Tuple {
-	ch := make(chan Tuple, m.Count())
-	go func() {
-		wg := sync.WaitGroup{}
-		wg.Add(SHARD_COUNT)
-		// Foreach shard.
-		for _, shard := range m {
-			go func(shard *ConcurrentMapShared) {
-				// Foreach key, value pair.
-				shard.RLock()
-				for key, val := range shard.items {
-					ch <- Tuple{key, val}
-				}
-				shard.RUnlock()
-				wg.Done()
-			}(shard)
-		}
-		wg.Wait()
-		close(ch)
-	}()
+	chans := snapshot(&m)
+	total := 0
+	for _, c := range chans {
+		total += cap(c)
+	}
+	ch := make(chan Tuple, total)
+	go fanIn(chans, ch)
 	return ch
+}
+
+// Returns a array of channels that contains elements in each shard,
+// which likely takes a snapshot of `m`.
+// It returns once the size of each buffered channel is determined,
+// before all the channels are populated using goroutines.
+func snapshot(m *ConcurrentMap) (chans []chan Tuple) {
+	chans = make([]chan Tuple, SHARD_COUNT)
+	wg := sync.WaitGroup{}
+	wg.Add(SHARD_COUNT)
+	// Foreach shard.
+	for index, shard := range *m {
+		go func(index int, shard *ConcurrentMapShared) {
+			// Foreach key, value pair.
+			shard.RLock()
+			chans[index] = make(chan Tuple, len(shard.items))
+			wg.Done()
+			for key, val := range shard.items {
+				chans[index] <- Tuple{key, val}
+			}
+			shard.RUnlock()
+			close(chans[index])
+		}(index, shard)
+	}
+	wg.Wait()
+	return chans
+}
+
+// fanIn reads elements from channels `chans` into channel `out`
+func fanIn(chans []chan Tuple, out chan Tuple) {
+	wg := sync.WaitGroup{}
+	wg.Add(len(chans))
+	for _, ch := range chans {
+		go func(ch chan Tuple) {
+			for t := range ch {
+				out <- t
+			}
+			wg.Done()
+		}(ch)
+	}
+	wg.Wait()
+	close(out)
 }
 
 // Returns all items as map[string]interface{}
