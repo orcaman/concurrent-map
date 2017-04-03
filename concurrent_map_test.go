@@ -47,6 +47,25 @@ func TestInsertAbsent(t *testing.T) {
 	}
 }
 
+func TestGetOrSet(t *testing.T) {
+	m := New()
+	elephant := Animal{"elephant"}
+	monkey := Animal{"monkey"}
+
+	efn := func() interface{} { return elephant }
+	mfn := func() interface{} { return monkey }
+
+	value, absent := m.GetOrSet("elephant", efn)
+	if !absent || value != elephant {
+		t.Fatalf("GetOrSet function: GetOrSet(%s, %v) = (%v, %v) want (%v, %v)", "elephant", efn, value, absent, elephant, true)
+	}
+
+	value, absent = m.GetOrSet("elephant", mfn)
+	if absent || value != elephant {
+		t.Fatalf("GetOrSet function: GetOrSet(%s, %#v) = (%v, %v) want (%v, %v)", "elephant", mfn, value, absent, elephant, false)
+	}
+}
+
 func TestGet(t *testing.T) {
 	m := New()
 
