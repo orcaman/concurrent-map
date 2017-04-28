@@ -15,6 +15,7 @@ type ConcurrentMap []*ConcurrentMapShared
 type ConcurrentMapShared struct {
 	items        map[string]interface{}
 	sync.RWMutex // Read Write mutex, guards access to internal map.
+	Aux sync.Mutex // auxilary mutex that helps when reentrant locking is needed
 }
 
 // Creates a new concurrent map.
