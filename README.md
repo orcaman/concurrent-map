@@ -17,7 +17,7 @@ import (
 go get "github.com/orcaman/concurrent-map"
 ```
 
-The package is now imported under the "cmap" namespace. 
+The package is now imported under the "cmap" namespace.
 
 ## example
 
@@ -25,7 +25,7 @@ The package is now imported under the "cmap" namespace.
 
 	// Create a new map.
 	map := cmap.New()
-	
+
 	// Sets item within map, sets "bar" under key "foo"
 	map.Set("foo", "bar")
 
@@ -56,5 +56,5 @@ Contributions are highly welcome. In order for a contribution to be merged, plea
 - If the code is about performance issues, you must include benchmarks in the process (either in the issue or in the PR).
 - In general, we would like to keep `concurrent-map` as simple as possible and as similar to the native `map`. Please keep this in mind when opening issues.
 
-## license 
+## license
 MIT (see [LICENSE](https://github.com/orcaman/concurrent-map/blob/master/LICENSE) file)
