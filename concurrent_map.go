@@ -122,6 +122,26 @@ func (m ConcurrentMap) Remove(key string) {
 	shard.Unlock()
 }
 
+// RemoveCb is a callback executed in a map.RemoveCb() call, while Lock is held
+// If returns true, the element will be removed from the map
+type RemoveCb func(key string, v interface{}, exists bool) bool
+
+// RemoveCb locks the shard containing the key, retrieves its current value and calls the callback with those params
+// If callback returns true and element exists, it will remove it from the map
+// Returns the value returned by the callback (even if element was not present in the map)
+func (m ConcurrentMap) RemoveCb(key string, cb RemoveCb) bool {
+	// Try to get shard.
+	shard := m.GetShard(key)
+	shard.Lock()
+	v, ok := shard.items[key]
+	remove := cb(key, v, ok)
+	if remove && ok {
+		delete(shard.items, key)
+	}
+	shard.Unlock()
+	return remove
+}
+
 // Removes an element from the map and returns it
 func (m ConcurrentMap) Pop(key string) (v interface{}, exists bool) {
 	// Try to get shard.
