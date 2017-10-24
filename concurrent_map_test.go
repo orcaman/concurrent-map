@@ -124,6 +124,98 @@ func TestRemove(t *testing.T) {
 	m.Remove("noone")
 }
 
+func TestRemoveCb(t *testing.T) {
+	m := New()
+
+	monkey := Animal{"monkey"}
+	m.Set("monkey", monkey)
+	elephant := Animal{"elephant"}
+	m.Set("elephant", elephant)
+
+	var (
+		mapKey string
+		mapVal interface{}
+		wasFound bool
+
+	)
+	cb := func(key string, val interface{}, exists bool) bool {
+		mapKey = key
+		mapVal = val
+		wasFound = exists
+
+		if animal, ok := val.(Animal); ok {
+			return animal.name == "monkey"
+		}
+		return false
+	}
+
+	// Monkey should be removed
+	result := m.RemoveCb("monkey", cb)
+	if !result {
+		t.Errorf("Result was not true")
+	}
+
+	if mapKey != "monkey" {
+		t.Error("Wrong key was provided to the callback")
+	}
+
+	if mapVal != monkey {
+		t.Errorf("Wrong value was provided to the value")
+	}
+
+	if !wasFound {
+		t.Errorf("Key was not found")
+	}
+
+	if m.Has("monkey") {
+		t.Errorf("Key was not removed")
+	}
+
+	// Elephant should not be removed
+	result = m.RemoveCb("elephant", cb)
+	if result {
+		t.Errorf("Result was true")
+	}
+
+	if mapKey != "elephant" {
+		t.Error("Wrong key was provided to the callback")
+	}
+
+	if mapVal != elephant {
+		t.Errorf("Wrong value was provided to the value")
+	}
+
+	if !wasFound {
+		t.Errorf("Key was not found")
+	}
+
+	if !m.Has("elephant") {
+		t.Errorf("Key was removed")
+	}
+
+	// Unset key should remain unset
+	result = m.RemoveCb("horse", cb)
+	if result {
+		t.Errorf("Result was true")
+	}
+
+	if mapKey != "horse" {
+		t.Error("Wrong key was provided to the callback")
+	}
+
+	if mapVal != nil {
+		t.Errorf("Wrong value was provided to the value")
+	}
+
+	if wasFound {
+		t.Errorf("Key was found")
+	}
+
+	if m.Has("horse") {
+		t.Errorf("Key was created")
+	}
+}
+
 func TestPop(t *testing.T) {
 	m := New()
 
