@@ -42,7 +42,7 @@ func TestInsertAbsent(t *testing.T) {
 	monkey := Animal{"monkey"}
 
 	m.SetIfAbsent("elephant", elephant)
-	if ok := m.SetIfAbsent("elephant", monkey); ok {
+	if _, ok := m.SetIfAbsent("elephant", monkey); ok {
 		t.Error("map set a new value even the entry is already present")
 	}
 }
@@ -133,10 +133,9 @@ func TestRemoveCb(t *testing.T) {
 	m.Set("elephant", elephant)
 
 	var (
-		mapKey string
-		mapVal interface{}
+		mapKey   string
+		mapVal   interface{}
 		wasFound bool
-
 	)
 	cb := func(key string, val interface{}, exists bool) bool {
 		mapKey = key
