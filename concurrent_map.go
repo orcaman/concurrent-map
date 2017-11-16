@@ -67,16 +67,17 @@ func (m ConcurrentMap) Upsert(key string, value interface{}, cb UpsertCb) (res i
 }
 
 // Sets the given value under the specified key if no value was associated with it.
-func (m ConcurrentMap) SetIfAbsent(key string, value interface{}) bool {
+func (m ConcurrentMap) SetIfAbsent(key string, value interface{}) (actual interface{}, set bool) {
 	// Get map shard.
 	shard := m.GetShard(key)
 	shard.Lock()
-	_, ok := shard.items[key]
+	actual, ok := shard.items[key]
 	if !ok {
 		shard.items[key] = value
+		actual = value
 	}
 	shard.Unlock()
-	return !ok
+	return actual, !ok
 }
 
 // Retrieves an element from map under given key.
