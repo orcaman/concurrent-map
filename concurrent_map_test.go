@@ -42,7 +42,7 @@ func TestInsertAbsent(t *testing.T) {
 	monkey := Animal{"monkey"}
 
 	m.SetIfAbsent("elephant", elephant)
-	if _, ok := m.SetIfAbsent("elephant", monkey); ok {
+	if ok := m.SetIfAbsent("elephant", monkey); ok {
 		t.Error("map set a new value even the entry is already present")
 	}
 }
