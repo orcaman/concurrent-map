@@ -26,18 +26,18 @@ The package is now imported under the "cmap" namespace.
 ```go
 
 	// Create a new map.
-	map := cmap.New()
+	m := cmap.New()
 
 	// Sets item within map, sets "bar" under key "foo"
-	map.Set("foo", "bar")
+	m.Set("foo", "bar")
 
 	// Retrieve item from map.
-	if tmp, ok := map.Get("foo"); ok {
+	if tmp, ok := m.Get("foo"); ok {
 		bar := tmp.(string)
 	}
 
 	// Removes item under key "foo"
-	map.Remove("foo")
+	m.Remove("foo")
 
 ```
 
