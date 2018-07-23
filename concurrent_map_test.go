@@ -133,10 +133,9 @@ func TestRemoveCb(t *testing.T) {
 	m.Set("elephant", elephant)
 
 	var (
-		mapKey string
-		mapVal interface{}
+		mapKey   string
+		mapVal   interface{}
 		wasFound bool
-
 	)
 	cb := func(key string, val interface{}, exists bool) bool {
 		mapKey = key
