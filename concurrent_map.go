@@ -2,6 +2,7 @@ package cmap
 
 import (
 	"encoding/json"
+	"sort"
 	"sync"
 )
 
@@ -287,6 +288,39 @@ func (m ConcurrentMap) Keys() []string {
 	for k := range ch {
 		keys = append(keys, k)
 	}
+	return keys
+}
+
+// Return all keys in sorted order as []string
+func (m ConcurrentMap) Sort() []string {
+	count := m.Count()
+	ch := make(chan string, count)
+	go func() {
+		// Foreach shard.
+		wg := sync.WaitGroup{}
+		wg.Add(SHARD_COUNT)
+		for _, shard := range m {
+			go func(shard *ConcurrentMapShared) {
+				// Foreach key, value pair.
+				shard.RLock()
+				for key := range shard.items {
+					ch <- key
+				}
+				shard.RUnlock()
+				wg.Done()
+			}(shard)
+		}
+		wg.Wait()
+		close(ch)
+	}()
+
+	// Generate keys
+	keys := make([]string, 0, count)
+	for k := range ch {
+		keys = append(keys, k)
+	}
+    sort.Strings(keys)
+
 	return keys
 }
 

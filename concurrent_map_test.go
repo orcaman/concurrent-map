@@ -459,6 +459,20 @@ func TestKeys(t *testing.T) {
 	}
 }
 
+func TestSortedKeys(t *testing.T) {
+	m := New()
+
+	// Insert 100 elements.
+	for i := 0; i < 100; i++ {
+		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
+	}
+
+	keys := m.Sort()
+	if len(keys) != 100 {
+		t.Error("We should have counted 100 elements.")
+	}
+}
+
 func TestMInsert(t *testing.T) {
 	animals := map[string]interface{}{
 		"elephant": Animal{"elephant"},
@@ -552,6 +566,30 @@ func TestKeysWhenRemoving(t *testing.T) {
 		}(&m, i)
 	}
 	keys := m.Keys()
+	for _, k := range keys {
+		if k == "" {
+			t.Error("Empty keys returned")
+		}
+	}
+}
+
+func TestSortedKeysWhenRemoving(t *testing.T) {
+	m := New()
+
+	// Insert 100 elements.
+	Total := 100
+	for i := 0; i < Total; i++ {
+		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
+	}
+
+	// Remove 10 elements concurrently.
+	Num := 10
+	for i := 0; i < Num; i++ {
+		go func(c *ConcurrentMap, n int) {
+			c.Remove(strconv.Itoa(n))
+		}(&m, i)
+	}
+	keys := m.Sort()
 	for _, k := range keys {
 		if k == "" {
 			t.Error("Empty keys returned")
