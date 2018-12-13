@@ -90,6 +90,25 @@ func (m ConcurrentMap) Get(key string) (interface{}, bool) {
 	return val, ok
 }
 
+// GetCb is a callback executed in a map.GetCb() call.
+// It is called while lock is held, therefore it MUST NOT
+// try to access other keys in same map, as it can lead to deadlock since
+// Go sync.RWLock is not reentrant.
+type GetCb func(key string, val interface{}, exist bool) (interface{}, bool)
+
+// Retrieves an element from map under given key and call the callback
+// For example, you can handle some complex logic about the policy of cache evict. LRU, LFU, etc.
+func (m ConcurrentMap) GetCb(key string, cb GetCb) (interface{}, bool) {
+	// Get shard
+	shard := m.GetShard(key)
+	shard.RLock()
+	// Get item from shard.
+	val, ok := shard.items[key]
+	val, ok = cb(key, val, ok)
+	shard.RUnlock()
+	return val, ok
+}
+
 // Returns the number of elements within the map.
 func (m ConcurrentMap) Count() int {
 	count := 0

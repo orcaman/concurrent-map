@@ -82,6 +82,53 @@ func TestGet(t *testing.T) {
 	}
 }
 
+func TestGetCb(t *testing.T) {
+	m := New()
+
+	hits := 0
+	cb := func(key string, v interface{}, exists bool) (interface{}, bool) {
+		if exists {
+			hits += 1
+		}
+		return v, exists
+	}
+
+	// Get a missing element.
+	val, ok := m.GetCb("Money", cb)
+
+	if ok == true {
+		t.Error("ok should be false when item is missing from map.")
+	}
+
+	if val != nil {
+		t.Error("Missing values should return as null.")
+	}
+
+	elephant := Animal{"elephant"}
+	m.Set("elephant", elephant)
+
+	// Retrieve inserted element.
+
+	tmp, ok := m.GetCb("elephant", cb)
+	elephant = tmp.(Animal) // Type assertion.
+
+	if ok == false {
+		t.Error("ok should be true for item stored within the map.")
+	}
+
+	if &elephant == nil {
+		t.Error("expecting an element, not null.")
+	}
+
+	if elephant.name != "elephant" {
+		t.Error("item was modified.")
+	}
+
+	if hits != 1 {
+		t.Error("the value of hits should be equal to 1")
+	}
+}
+
 func TestHas(t *testing.T) {
 	m := New()
 
