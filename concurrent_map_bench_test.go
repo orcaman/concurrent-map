@@ -284,10 +284,10 @@ func GetSetSyncMap(m sync.Map, finished chan struct{}) (set func(key, value stri
 }
 
 func runWithShards(bench func(b *testing.B), b *testing.B, shardsCount int) {
-	oldShardsCount := SHARD_COUNT
-	SHARD_COUNT = shardsCount
+	oldShardsCount := DEFAULT_SHARD_COUNT
+	DEFAULT_SHARD_COUNT = shardsCount
 	bench(b)
-	SHARD_COUNT = oldShardsCount
+	DEFAULT_SHARD_COUNT = oldShardsCount
 }
 
 func BenchmarkKeys(b *testing.B) {
