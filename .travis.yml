@@ -4,14 +4,10 @@ sudo: false
 
 language: go
 
-# Force-enable Go modules. This will be unnecessary when Go 1.12 lands.
-env:
-  - GO111MODULE=on
-
 # You don't need to test on very old version of the Go compiler. It's the user's
 # responsibility to keep their compilers up to date.
 go:
-  - 1.11.x
+  - 1.12.x
 
 # Only clone the most recent commit.
 git:
@@ -29,7 +25,7 @@ notifications:
 # build and immediately stop. It's sorta like having set -e enabled in bash.
 # Make sure golangci-lint is vendored.
 before_script:
-  - go install -mod vendor github.com/golangci/golangci-lint/cmd/golangci-lint
+  - go install github.com/golangci/golangci-lint/cmd/golangci-lint
 
 # script always runs to completion (set +e). If we have linter issues AND a
 # failing test, we want to see both. Configure golangci-lint with a
