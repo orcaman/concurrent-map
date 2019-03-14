@@ -26,7 +26,10 @@ func BenchmarkMarshalJson(b *testing.B) {
 		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
 	}
 	for i := 0; i < b.N; i++ {
-		m.MarshalJSON()
+		_, err := m.MarshalJSON()
+		if err != nil {
+			b.FailNow()
+		}
 	}
 }
 
@@ -86,7 +89,10 @@ func benchmarkMultiInsertDifferent(b *testing.B) {
 func BenchmarkMultiInsertDifferentSyncMap(b *testing.B) {
 	var m sync.Map
 	finished := make(chan struct{}, b.N)
-	_, set := GetSetSyncMap(m, finished)
+	err, set := GetSetSyncMap(&m, finished)
+	if err != nil {
+		b.FailNow()
+	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		go set(strconv.Itoa(i), "value")
@@ -126,7 +132,7 @@ func BenchmarkMultiInsertSame(b *testing.B) {
 func BenchmarkMultiInsertSameSyncMap(b *testing.B) {
 	var m sync.Map
 	finished := make(chan struct{}, b.N)
-	_, set := GetSetSyncMap(m, finished)
+	_, set := GetSetSyncMap(&m, finished)
 	m.Store("key", "value")
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -154,7 +160,7 @@ func BenchmarkMultiGetSame(b *testing.B) {
 func BenchmarkMultiGetSameSyncMap(b *testing.B) {
 	var m sync.Map
 	finished := make(chan struct{}, b.N)
-	get, _ := GetSetSyncMap(m, finished)
+	get, _ := GetSetSyncMap(&m, finished)
 	m.Store("key", "value")
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -183,7 +189,7 @@ func benchmarkMultiGetSetDifferent(b *testing.B) {
 func BenchmarkMultiGetSetDifferentSyncMap(b *testing.B) {
 	var m sync.Map
 	finished := make(chan struct{}, 2*b.N)
-	get, set := GetSetSyncMap(m, finished)
+	get, set := GetSetSyncMap(&m, finished)
 	m.Store("-1", "value")
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -228,7 +234,7 @@ func benchmarkMultiGetSetBlock(b *testing.B) {
 func BenchmarkMultiGetSetBlockSyncMap(b *testing.B) {
 	var m sync.Map
 	finished := make(chan struct{}, 2*b.N)
-	get, set := GetSetSyncMap(m, finished)
+	get, set := GetSetSyncMap(&m, finished)
 	for i := 0; i < b.N; i++ {
 		m.Store(strconv.Itoa(i%100), "value")
 	}
@@ -269,7 +275,7 @@ func GetSet(m ConcurrentMap, finished chan struct{}) (set func(key, value string
 		}
 }
 
-func GetSetSyncMap(m sync.Map, finished chan struct{}) (set func(key, value string), get func(key, value string)) {
+func GetSetSyncMap(m *sync.Map, finished chan struct{}) (set func(key, value string), get func(key, value string)) {
 	return func(key, value string) {
 			for i := 0; i < 10; i++ {
 				m.Load(key)
