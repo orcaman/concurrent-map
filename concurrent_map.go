@@ -70,12 +70,14 @@ func (m ConcurrentMap) Upsert(key string, value interface{}, cb UpsertCb) (res i
 func (m ConcurrentMap) SetIfAbsent(key string, value interface{}) bool {
 	// Get map shard.
 	shard := m.GetShard(key)
-	shard.Lock()
+	shard.RLock()
 	_, ok := shard.items[key]
+	shard.RUnlock()
 	if !ok {
+		shard.Lock()
 		shard.items[key] = value
+		shard.Unlock()
 	}
-	shard.Unlock()
 	return !ok
 }
 
