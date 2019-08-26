@@ -89,10 +89,8 @@ func benchmarkMultiInsertDifferent(b *testing.B) {
 func BenchmarkMultiInsertDifferentSyncMap(b *testing.B) {
 	var m sync.Map
 	finished := make(chan struct{}, b.N)
-	err, set := GetSetSyncMap(&m, finished)
-	if err != nil {
-		b.FailNow()
-	}
+	_, set := GetSetSyncMap(&m, finished)
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		go set(strconv.Itoa(i), "value")
@@ -275,18 +273,20 @@ func GetSet(m ConcurrentMap, finished chan struct{}) (set func(key, value string
 		}
 }
 
-func GetSetSyncMap(m *sync.Map, finished chan struct{}) (set func(key, value string), get func(key, value string)) {
-	return func(key, value string) {
-			for i := 0; i < 10; i++ {
-				m.Load(key)
-			}
-			finished <- struct{}{}
-		}, func(key, value string) {
-			for i := 0; i < 10; i++ {
-				m.Store(key, value)
-			}
-			finished <- struct{}{}
+func GetSetSyncMap(m *sync.Map, finished chan struct{}) (get func(key, value string), set func(key, value string)) {
+	get = func(key, value string) {
+		for i := 0; i < 10; i++ {
+			m.Load(key)
 		}
+		finished <- struct{}{}
+	}
+	set = func(key, value string) {
+		for i := 0; i < 10; i++ {
+			m.Store(key, value)
+		}
+		finished <- struct{}{}
+	}
+	return
 }
 
 func runWithShards(bench func(b *testing.B), b *testing.B, shardsCount int) {
