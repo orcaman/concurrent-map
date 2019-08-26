@@ -58,5 +58,8 @@ Contributions are highly welcome. In order for a contribution to be merged, plea
 - If the code is about performance issues, you must include benchmarks in the process (either in the issue or in the PR).
 - In general, we would like to keep `concurrent-map` as simple as possible and as similar to the native `map`. Please keep this in mind when opening issues.
 
+## language
+- [中文说明](./README-zh.md)
+
 ## license
 MIT (see [LICENSE](https://github.com/orcaman/concurrent-map/blob/master/LICENSE) file)
