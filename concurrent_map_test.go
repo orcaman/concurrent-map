@@ -71,7 +71,7 @@ func TestGet(t *testing.T) {
 	}
 
 	elephant, ok = tmp.(Animal) // Type assertion.
-	if &elephant == nil {
+	if !ok {
 		t.Error("expecting an element, not null.")
 	}
 
