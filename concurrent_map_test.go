@@ -65,15 +65,13 @@ func TestGet(t *testing.T) {
 	m.Set("elephant", elephant)
 
 	// Retrieve inserted element.
-
 	tmp, ok := m.Get("elephant")
-	elephant = tmp.(Animal) // Type assertion.
-
 	if ok == false {
 		t.Error("ok should be true for item stored within the map.")
 	}
 
-	if &elephant == nil {
+	elephant, ok = tmp.(Animal) // Type assertion.
+	if !ok {
 		t.Error("expecting an element, not null.")
 	}
 
