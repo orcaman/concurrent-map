@@ -537,6 +537,57 @@ func TestUpsert(t *testing.T) {
 	}
 }
 
+func TestUpsertOrRemove(t *testing.T) {
+	dolphin := Animal{"dolphin"}
+	whale := Animal{"whale"}
+	tiger := Animal{"tiger"}
+	lion := Animal{"lion"}
+	crow := Animal{"crow"}
+
+	// This callback removes the key from the map if the list ever
+	// contains more than one crow
+	cb := func(exists bool, valueInMap interface{}, newValue interface{}) (val interface{}, upsert bool, remove bool) {
+		nv := newValue.(Animal)
+		if !exists {
+			// Insert
+			return []Animal{nv}, true, false
+		}
+		res := valueInMap.([]Animal)
+		crowCount := 0
+		if nv == crow {
+			crowCount++
+		}
+		for _, animal := range res {
+			if animal == crow {
+				crowCount++
+			}
+		}
+		if crowCount > 1 {
+			// Remove
+			return nil, false, true
+		}
+		// Update
+		return append(res, nv), true, false
+	}
+
+	m := New()
+	m.UpsertOrRemove("marine", dolphin, cb)
+	m.UpsertOrRemove("marine", whale, cb)
+	m.UpsertOrRemove("predator", tiger, cb)
+	m.UpsertOrRemove("predator", lion, cb)
+	m.UpsertOrRemove("scavenger", crow, cb)
+
+	if m.Count() != 3 {
+		t.Error("map should contain exactly three elements")
+	}
+
+	m.UpsertOrRemove("scavenger", crow, cb)
+
+	if m.Count() != 2 {
+		t.Error("map should contain exactly two elements")
+	}
+}
+
 func TestKeysWhenRemoving(t *testing.T) {
 	m := New()
 
