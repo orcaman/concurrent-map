@@ -326,6 +326,21 @@ func TestBufferedIterator(t *testing.T) {
 	}
 }
 
+func TestClear(t *testing.T) {
+	m := New()
+
+	// Insert 100 elements.
+	for i := 0; i < 100; i++ {
+		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
+	}
+
+	m.Clear()
+
+	if m.Count() != 0 {
+		t.Error("We should have 0 elements.")
+	}
+}
+
 func TestIterCb(t *testing.T) {
 	m := New()
 
