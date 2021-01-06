@@ -186,6 +186,13 @@ func (m ConcurrentMap) IterBuffered() <-chan Tuple {
 	return ch
 }
 
+// Clear removes all items from map.
+func (m ConcurrentMap) Clear() {
+	for item := range m.IterBuffered() {
+		m.Remove(item.Key)
+	}
+}
+
 // Returns a array of channels that contains elements in each shard,
 // which likely takes a snapshot of `m`.
 // It returns once the size of each buffered channel is determined,
