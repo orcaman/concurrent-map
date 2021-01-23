@@ -28,14 +28,24 @@ func New() ConcurrentMap {
 
 // GetShard returns shard under given key
 func (m ConcurrentMap) GetShard(key string) *ConcurrentMapShared {
-	return m[uint(fnv32(key))%uint(SHARD_COUNT)]
+	return m[hash(key)]
 }
 
 func (m ConcurrentMap) MSet(data map[string]interface{}) {
+	bucket := make(map[uint]map[string]interface{}, 0)
 	for key, value := range data {
-		shard := m.GetShard(key)
+		index := hash(key)
+		if _, ok := bucket[index]; !ok {
+			bucket[index] = make(map[string]interface{}, 0)
+		}
+		bucket[index][key] = value
+	}
+	for index, segment := range bucket {
+		shard := m[index]
 		shard.Lock()
-		shard.items[key] = value
+		for key, value := range segment {
+			shard.items[key] = value
+		}
 		shard.Unlock()
 	}
 }
@@ -120,6 +130,26 @@ func (m ConcurrentMap) Remove(key string) {
 	shard.Lock()
 	delete(shard.items, key)
 	shard.Unlock()
+}
+
+func (m ConcurrentMap) MRemove(keys []string)  {
+	bucket := make(map[uint][]string, 0)
+	for _, key := range keys {
+		index := hash(key)
+		if _, ok := bucket[index]; !ok {
+			bucket[index] = make([]string, 0)
+		}
+		bucket[index] = append(bucket[index], key)
+	}
+
+	for index, segment := range bucket {
+		shard := m[index]
+		shard.Lock()
+		for _, key := range segment {
+			delete(shard.items, key)
+		}
+		shard.Unlock()
+	}
 }
 
 // RemoveCb is a callback executed in a map.RemoveCb() call, while Lock is held
@@ -317,6 +347,10 @@ func fnv32(key string) uint32 {
 		hash ^= uint32(key[i])
 	}
 	return hash
+}
+
+func hash(key string) uint {
+	return uint(fnv32(key))%uint(SHARD_COUNT)
 }
 
 // Concurrent map uses Interface{} as its value, therefor JSON Unmarshal
