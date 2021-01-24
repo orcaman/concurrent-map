@@ -32,11 +32,11 @@ func (m ConcurrentMap) GetShard(key string) *ConcurrentMapShared {
 }
 
 func (m ConcurrentMap) MSet(data map[string]interface{}) {
-	bucket := make(map[uint]map[string]interface{}, 0)
+	bucket := make(map[uint]map[string]interface{})
 	for key, value := range data {
 		index := hash(key)
 		if _, ok := bucket[index]; !ok {
-			bucket[index] = make(map[string]interface{}, 0)
+			bucket[index] = make(map[string]interface{})
 		}
 		bucket[index][key] = value
 	}
@@ -133,7 +133,7 @@ func (m ConcurrentMap) Remove(key string) {
 }
 
 func (m ConcurrentMap) MRemove(keys []string)  {
-	bucket := make(map[uint][]string, 0)
+	bucket := make(map[uint][]string)
 	for _, key := range keys {
 		index := hash(key)
 		if _, ok := bucket[index]; !ok {
