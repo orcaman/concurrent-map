@@ -28,7 +28,7 @@ func New() ConcurrentMap {
 
 // GetShard returns shard under given key
 func (m ConcurrentMap) GetShard(key string) *ConcurrentMapShared {
-	return m[uint(fnv32(key))%uint(SHARD_COUNT)]
+	return m[uint(fnv32(key))&uint(SHARD_COUNT-1)]
 }
 
 func (m ConcurrentMap) MSet(data map[string]interface{}) {
