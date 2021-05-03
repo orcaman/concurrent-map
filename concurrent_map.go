@@ -49,6 +49,29 @@ func (m ConcurrentMap) Set(key string, value interface{}) {
 	shard.Unlock()
 }
 
+// UpsertOrRemoveCb allows a callback to either insert, update, or
+// remove an entry in the map.  If upsert is true, then val will be
+// updated/inserted for the given key.  If remove is true, then the
+// key will be deleted from the map.  Otherwise, nothing happens.
+type UpsertOrRemoveCb func(exist bool, valueInMap interface{}, newValue interface{}) (val interface{}, upsert bool, remove bool)
+
+// Insert, Update, or Remove - updates or removes existing element or
+// inserts a new one using UpsertOrRemoveCb
+func (m ConcurrentMap) UpsertOrRemove(key string, value interface{}, cb UpsertOrRemoveCb) (res interface{}, upsert bool, remove bool) {
+	shard := m.GetShard(key)
+	shard.Lock()
+	v, ok := shard.items[key]
+	res, upsert, remove = cb(ok, v, value)
+	if remove {
+		delete(shard.items, key)
+	}
+	if upsert {
+		shard.items[key] = res
+	}
+	shard.Unlock()
+	return res, upsert, remove
+}
+
 // Callback to return new element to be inserted into the map
 // It is called while lock is held, therefore it MUST NOT
 // try to access other keys in same map, as it can lead to deadlock since
@@ -57,12 +80,9 @@ type UpsertCb func(exist bool, valueInMap interface{}, newValue interface{}) int
 
 // Insert or Update - updates existing element or inserts a new one using UpsertCb
 func (m ConcurrentMap) Upsert(key string, value interface{}, cb UpsertCb) (res interface{}) {
-	shard := m.GetShard(key)
-	shard.Lock()
-	v, ok := shard.items[key]
-	res = cb(ok, v, value)
-	shard.items[key] = res
-	shard.Unlock()
+	res, _, _ = m.UpsertOrRemove(key, value, func(exists bool, valueInMap interface{}, newValue interface{}) (interface{}, bool, bool) {
+		return cb(exists, valueInMap, newValue), true, false
+	})
 	return res
 }
 
@@ -130,15 +150,9 @@ type RemoveCb func(key string, v interface{}, exists bool) bool
 // If callback returns true and element exists, it will remove it from the map
 // Returns the value returned by the callback (even if element was not present in the map)
 func (m ConcurrentMap) RemoveCb(key string, cb RemoveCb) bool {
-	// Try to get shard.
-	shard := m.GetShard(key)
-	shard.Lock()
-	v, ok := shard.items[key]
-	remove := cb(key, v, ok)
-	if remove && ok {
-		delete(shard.items, key)
-	}
-	shard.Unlock()
+	_, _, remove := m.UpsertOrRemove(key, nil, func(exists bool, valueInMap interface{}, newValue interface{}) (interface{}, bool, bool) {
+		return nil, false, cb(key, valueInMap, exists)
+	})
 	return remove
 }
 
