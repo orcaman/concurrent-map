@@ -17,12 +17,13 @@ type ConcurrentMap []ConcurrentMapShared
 // A "thread" safe string to anything map.
 type ConcurrentMapShared struct {
 	sharedInternal
-	pad [cacheLineSize - unsafe.Sizeof(sharedInternal{})]byte
+	pad [cacheLineSize - unsafe.Sizeof(sharedInternal{})]byte //nolint
 }
 
 type sharedInternal struct {
-	items        map[string]interface{}
-	sync.RWMutex // Read Write mutex, guards access to internal map.
+	items map[string]interface{} //nolint
+	// Read Write mutex, guards access to internal map.
+	sync.RWMutex //nolint
 }
 
 // Creates a new concurrent map.
