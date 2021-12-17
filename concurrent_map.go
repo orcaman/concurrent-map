@@ -198,6 +198,10 @@ func (m ConcurrentMap) Clear() {
 // It returns once the size of each buffered channel is determined,
 // before all the channels are populated using goroutines.
 func snapshot(m ConcurrentMap) (chans []chan Tuple) {
+	//When you access map items before initializing.
+	if len(m) == 0{
+		panic(`cmap.ConcurrentMap is not initialized. Should run New() before usage.`)
+	}
 	chans = make([]chan Tuple, SHARD_COUNT)
 	wg := sync.WaitGroup{}
 	wg.Add(SHARD_COUNT)
