@@ -122,6 +122,35 @@ func TestRemove(t *testing.T) {
 	m.Remove("noone")
 }
 
+func TestMRemove(t *testing.T)  {
+	m := New()
+	monkey := Animal{"monkey"}
+	m.Set("monkey", monkey)
+	elephant := Animal{"elephant"}
+	m.Set("elephant", elephant)
+
+	keys := []string{"monkey", "elephant"}
+	m.MRemove(keys)
+
+	if m.Count() != 0 {
+		t.Error("Expecting count to be zero once multi items were removed.")
+	}
+
+	temp, ok := m.Get("monkey")
+
+	if ok != false {
+		t.Error("Expecting ok to be false for missing items after multi items were removed..")
+	}
+
+	if temp != nil {
+		t.Error("Expecting item to be nil after multi items were removed.")
+	}
+
+	// Remove a none existing element.
+	m.Remove("noone")
+}
+
+
 func TestRemoveCb(t *testing.T) {
 	m := New()
 
