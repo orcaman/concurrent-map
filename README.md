@@ -10,13 +10,13 @@ Import the package:
 
 ```go
 import (
-	"github.com/orcaman/concurrent-map"
+	"github.com/orcaman/concurrent-map/v2"
 )
 
 ```
 
 ```bash
-go get "github.com/orcaman/concurrent-map"
+go get "github.com/orcaman/concurrent-map/v2"
 ```
 
 The package is now imported under the "cmap" namespace.
@@ -44,7 +44,7 @@ For more examples have a look at concurrent_map_test.go.
 Running tests:
 
 ```bash
-go test "github.com/orcaman/concurrent-map"
+go test "github.com/orcaman/concurrent-map/v2"
 ```
 
 ## guidelines for contributing
