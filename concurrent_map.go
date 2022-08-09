@@ -325,12 +325,12 @@ func fnv32(key string) uint32 {
 }
 
 // Reverse process of Marshal.
-func (m ConcurrentMap[V]) UnmarshalJSON(b []byte) (err error) {
+func (m *ConcurrentMap[V]) UnmarshalJSON(b []byte) (err error) {
  	tmp := make(map[string]V)
 
  	// Unmarshal into a single map.
  	if err := json.Unmarshal(b, &tmp); err != nil {
- 		return nil
+ 		return err
  	}
 
  	// foreach key,value pair in temporary map insert into our concurrent map.
