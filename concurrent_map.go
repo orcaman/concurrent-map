@@ -26,6 +26,17 @@ func New[V any]() ConcurrentMap[V] {
 	return m
 }
 
+func (m ConcurrentMap[V]) RenewShard(index uint) {
+	shard := m[index%uint(SHARD_COUNT)]
+	shard.Lock()
+	newShardItems := make(map[string]V, len(shard.items))
+	for k, v := range shard.items {
+		newShardItems[k] = v
+	}
+	shard.items = newShardItems
+	shard.Unlock()
+}
+
 // GetShard returns shard under given key
 func (m ConcurrentMap[V]) GetShard(key string) *ConcurrentMapShared[V] {
 	return m[uint(fnv32(key))%uint(SHARD_COUNT)]
