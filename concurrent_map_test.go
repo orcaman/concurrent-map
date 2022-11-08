@@ -14,7 +14,7 @@ type Animal struct {
 
 func TestMapCreation(t *testing.T) {
 	m := New[string]()
-	if m == nil {
+	if m.shards == nil {
 		t.Error("map is null.")
 	}
 
@@ -454,8 +454,8 @@ func TestKeys(t *testing.T) {
 
 func TestMInsert(t *testing.T) {
 	animals := map[string]Animal{
-		"elephant": Animal{"elephant"},
-		"monkey":   Animal{"monkey"},
+		"elephant": {"elephant"},
+		"monkey":   {"monkey"},
 	}
 	m := New[Animal]()
 	m.MSet(animals)
@@ -526,7 +526,7 @@ func TestKeysWhenRemoving(t *testing.T) {
 	// Remove 10 elements concurrently.
 	Num := 10
 	for i := 0; i < Num; i++ {
-		go func(c *ConcurrentMap[Animal], n int) {
+		go func(c *ConcurrentMap[string, Animal], n int) {
 			c.Remove(strconv.Itoa(n))
 		}(&m, i)
 	}
@@ -538,7 +538,6 @@ func TestKeysWhenRemoving(t *testing.T) {
 	}
 }
 
-//
 func TestUnDrainedIter(t *testing.T) {
 	m := New[Animal]()
 	// Insert 100 elements.
