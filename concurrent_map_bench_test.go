@@ -55,6 +55,17 @@ func BenchmarkSingleInsertAbsentSyncMap(b *testing.B) {
 	}
 }
 
+func BenchmarkSingleInsertAbsentMutexMap(b *testing.B) {
+	m := make(map[string]string)
+	var mtx sync.RWMutex
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		mtx.Lock()
+		m[strconv.Itoa(i)] = "value"
+		mtx.Unlock()
+	}
+}
+
 func BenchmarkSingleInsertPresent(b *testing.B) {
 	m := New()
 	m.Set("key", "value")
@@ -94,6 +105,20 @@ func BenchmarkMultiInsertDifferentSyncMap(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		go set(strconv.Itoa(i), "value")
+	}
+	for i := 0; i < b.N; i++ {
+		<-finished
+	}
+}
+
+func BenchmarkMultiInsertDifferentMutexMap(b *testing.B) {
+	m := make(map[string]string)
+	finished := make(chan struct{}, b.N)
+	var mtx sync.RWMutex
+	_, set := GetSetMutexMap(m, finished)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		go set(strconv.Itoa(i), "value", &mtx)
 	}
 	for i := 0; i < b.N; i++ {
 		<-finished
@@ -199,6 +224,22 @@ func BenchmarkMultiGetSetDifferentSyncMap(b *testing.B) {
 	}
 }
 
+func BenchmarkMultiGetSetDifferentMutexMap(b *testing.B) {
+	m := make(map[string]string)
+	finished := make(chan struct{}, 2*b.N)
+	var mtx sync.RWMutex
+	m["-1"] = "value"
+	get, set := GetSetMutexMap(m, finished)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		go set(strconv.Itoa(i-1), "value", &mtx)
+		go get(strconv.Itoa(i), "value", &mtx)
+	}
+	for i := 0; i < 2*b.N; i++ {
+		<-finished
+	}
+}
+
 func BenchmarkMultiGetSetDifferent_1_Shard(b *testing.B) {
 	runWithShards(benchmarkMultiGetSetDifferent, b, 1)
 }
@@ -240,6 +281,24 @@ func BenchmarkMultiGetSetBlockSyncMap(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		go set(strconv.Itoa(i%100), "value")
 		go get(strconv.Itoa(i%100), "value")
+	}
+	for i := 0; i < 2*b.N; i++ {
+		<-finished
+	}
+}
+
+func BenchmarkMultiGetSetBlockMutexMap(b *testing.B) {
+	m := make(map[string]string)
+	finished := make(chan struct{}, 2*b.N)
+	get, set := GetSetMutexMap(m, finished)
+	var mtx sync.RWMutex
+	for i := 0; i < b.N; i++ {
+		m[strconv.Itoa(i%100)] = "value"
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		go set(strconv.Itoa(i%100), "value", &mtx)
+		go get(strconv.Itoa(i%100), "value", &mtx)
 	}
 	for i := 0; i < 2*b.N; i++ {
 		<-finished
@@ -289,6 +348,25 @@ func GetSetSyncMap(m *sync.Map, finished chan struct{}) (get func(key, value str
 	return
 }
 
+func GetSetMutexMap(m map[string]string, finished chan struct{}) (get func(key, value string, mtx *sync.RWMutex), set func(key, value string, mtx *sync.RWMutex)) {
+	get = func(key, value string, mtx *sync.RWMutex) {
+		for i := 0; i < 10; i++ {
+			mtx.RLock()
+			_ = m[key]
+			mtx.RUnlock()
+		}
+		finished <- struct{}{}
+	}
+	set = func(key, value string, mtx *sync.RWMutex) {
+		for i := 0; i < 10; i++ {
+			mtx.Lock()
+			m[key] = value
+			mtx.Unlock()
+		}
+		finished <- struct{}{}
+	}
+	return
+}
 func runWithShards(bench func(b *testing.B), b *testing.B, shardsCount int) {
 	oldShardsCount := SHARD_COUNT
 	SHARD_COUNT = shardsCount
@@ -307,3 +385,4 @@ func BenchmarkKeys(b *testing.B) {
 		m.Keys()
 	}
 }
+
