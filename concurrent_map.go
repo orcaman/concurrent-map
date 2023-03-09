@@ -13,8 +13,8 @@ type Stringer interface {
 	comparable
 }
 
-// ConcurrentMap a "thread" safe map of type string:Anything.
-// To avoid lock bottlenecks this map is dived to several (ShardCount) map shards.
+// ConcurrentMap a "thread" safe map of type string:Anything. To avoid lock
+// bottlenecks this map is dived to several (ShardCount) map shards.
 type ConcurrentMap[K comparable, V any] struct {
 	shards   []*ConcurrentMapShared[K, V]
 	sharding func(key K) uint32
@@ -76,10 +76,9 @@ func (m ConcurrentMap[K, V]) Set(key K, value V) {
 	shard.Unlock()
 }
 
-// UpsertCb callback to return new element to be inserted into the map.
-// It is called while lock is held, therefore it MUST NOT
-// try to access other keys in same map, as it can lead to deadlock since
-// Go sync.RWLock is not reentrant
+// UpsertCb callback to return new element to be inserted into the map. It is
+// called while lock is held, therefore it MUST NOT try to access other keys in
+// same map, as it can lead to deadlock since Go sync.RWLock is not reentrant
 type UpsertCb[V any] func(exist bool, valueInMap V, newValue V) V
 
 // Upsert Insert or Update - updates existing element or inserts a new one using UpsertCb.
@@ -93,7 +92,8 @@ func (m ConcurrentMap[K, V]) Upsert(key K, value V, cb UpsertCb[V]) (res V) {
 	return res
 }
 
-// SetIfAbsent Sets the given value under the specified key if no value was associated with it.
+// SetIfAbsent Sets the given value under the specified key if no value was
+// associated with it.
 func (m ConcurrentMap[K, V]) SetIfAbsent(key K, value V) bool {
 	// Get map shard.
 	shard := m.GetShard(key)
@@ -153,9 +153,10 @@ func (m ConcurrentMap[K, V]) Remove(key K) {
 // If returns true, the element will be removed from the map.
 type RemoveCb[K any, V any] func(key K, v V, exists bool) bool
 
-// RemoveCb locks the shard containing the key, retrieves its current value and calls the callback with those params.
-// If callback returns true and element exists, it will remove it from the map
-// Returns the value returned by the callback (even if element was not present in the map)
+// RemoveCb locks the shard containing the key, retrieves its current value and
+// calls the callback with those params. If callback returns true and element
+// exists, it will remove it from the map Returns the value returned by the
+// callback (even if element was not present in the map).
 func (m ConcurrentMap[K, V]) RemoveCb(key K, cb RemoveCb[K, V]) bool {
 	// Try to get shard.
 	shard := m.GetShard(key)
@@ -185,7 +186,8 @@ func (m ConcurrentMap[K, V]) IsEmpty() bool {
 	return m.Count() == 0
 }
 
-// Tuple Used by the Iter & IterBuffered functions to wrap two variables together over a channel.
+// Tuple Used by the Iter & IterBuffered functions to wrap two variables
+// together over a channel.
 type Tuple[K comparable, V any] struct {
 	Key K
 	Val V
@@ -201,7 +203,8 @@ func (m ConcurrentMap[K, V]) Iter() <-chan Tuple[K, V] {
 	return ch
 }
 
-// IterBuffered returns a buffered iterator which could be used in a for range loop.
+// IterBuffered returns a buffered iterator which could be used in a for range
+// loop.
 func (m ConcurrentMap[K, V]) IterBuffered() <-chan Tuple[K, V] {
 	chans := snapshot(m)
 	total := 0
@@ -220,12 +223,12 @@ func (m ConcurrentMap[K, V]) Clear() {
 	}
 }
 
-// Returns a array of channels that contains elements in each shard,
-// which likely takes a snapshot of `m`.
-// It returns once the size of each buffered channel is determined,
-// before all the channels are populated using goroutines.
+// Returns a array of channels that contains elements in each shard, which
+// likely takes a snapshot of `m`. It returns once the size of each buffered
+// channel is determined, before all the channels are populated using
+// goroutines.
 func snapshot[K comparable, V any](m ConcurrentMap[K, V]) (chans []chan Tuple[K, V]) {
-	//When you access map items before initializing.
+	// When you access map items before initializing.
 	if len(m.shards) == 0 {
 		panic(`cmap.ConcurrentMap is not initialized. Should run New() before usage.`)
 	}
@@ -278,13 +281,12 @@ func (m ConcurrentMap[K, V]) Items() map[K]V {
 	return tmp
 }
 
-// IterCb Iterator callbacalled for every key,value found in maps.
-// RLock is held for all calls for a given shard therefore callback
-// sess consistent view of a shard, but not across the shards.
+// IterCb Iterator callbacalled for every key,value found in maps. RLock is held
+// for all calls for a given shard therefore callback sess consistent view of a
+// shard, but not across the shards.
 type IterCb[K comparable, V any] func(key K, v V)
 
-// IterCb Callback based iterator, cheapest way to read
-// all elements in a map.
+// IterCb Callback based iterator, cheapest way to read all elements in a map.
 func (m ConcurrentMap[K, V]) IterCb(fn IterCb[K, V]) {
 	for idx := range m.shards {
 		shard := (m.shards)[idx]
