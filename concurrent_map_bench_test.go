@@ -292,7 +292,6 @@ func BenchmarkMultiGetSetBlock_256_Shard(b *testing.B) {
 	runWithShards(benchmarkMultiGetSetBlock, b, 256)
 }
 
-
 func GetSet[K comparable, V any](m ConcurrentMap[K, V], finished chan struct{}) (set func(key K, value V), get func(key K, value V)) {
 	return func(key K, value V) {
 			for i := 0; i < 10; i++ {
@@ -324,10 +323,10 @@ func GetSetSyncMap[K comparable, V any](m *sync.Map, finished chan struct{}) (ge
 }
 
 func runWithShards(bench func(b *testing.B), b *testing.B, shardsCount int) {
-	oldShardsCount := SHARD_COUNT
-	SHARD_COUNT = shardsCount
+	oldShardsCount := ShardCount
+	ShardCount = shardsCount
 	bench(b)
-	SHARD_COUNT = oldShardsCount
+	ShardCount = oldShardsCount
 }
 
 func BenchmarkKeys(b *testing.B) {

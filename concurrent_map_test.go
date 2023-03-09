@@ -419,9 +419,9 @@ func TestConcurrent(t *testing.T) {
 }
 
 func TestJsonMarshal(t *testing.T) {
-	SHARD_COUNT = 2
+	ShardCount = 2
 	defer func() {
-		SHARD_COUNT = 32
+		ShardCount = 32
 	}()
 	expected := "{\"a\":1,\"b\":2}"
 	m := New[int]()
