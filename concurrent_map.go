@@ -75,6 +75,30 @@ func (m ConcurrentMap[K, V]) Set(key K, value V) {
 	shard.Unlock()
 }
 
+// Callback to update an element in the map.
+// If the element doesn't exist in the map, the parameter will receive the zero value for the value type.
+// The returned value will be stored in the map replacing the existing value.
+// Returning false for the second return value aborts the update.
+// It is called while lock is held, therefore it MUST NOT
+// try to access other keys in same map, as it can lead to deadlock since
+// Go sync.RWLock is not reentrant
+type UpdateCb[V any] func(exist bool, valueInMap V) (V, bool)
+
+// Update an existing element using UpdateCb, assuming the key exists.
+// If it does not, the zero value for the value type is passed to the callback.
+// if the callback return false for the second return value, the map will not be updated.
+func (m ConcurrentMap[K, V]) Update(key K, cb UpdateCb[V]) (res V) {
+	shard := m.GetShard(key)
+	shard.Lock()
+	v, ok := shard.items[key]
+	res, update := cb(ok, v)
+	if update {
+		shard.items[key] = res
+	}
+	shard.Unlock()
+	return res
+}
+
 // Callback to return new element to be inserted into the map
 // It is called while lock is held, therefore it MUST NOT
 // try to access other keys in same map, as it can lead to deadlock since

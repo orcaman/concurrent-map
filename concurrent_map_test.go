@@ -479,6 +479,68 @@ func TestFnv32(t *testing.T) {
 
 }
 
+func TestUpdate(t *testing.T) {
+	m := New[Animal]()
+	lion := Animal{"lion"}
+
+	m.Set("safari", lion)
+	m.Update("safari", func(exists bool, valueInMap Animal) (Animal, bool) {
+		if !exists {
+			t.Error("Update recieved false exists flag for existing key")
+		}
+		valueInMap.name = "tiger"
+		return valueInMap, true
+	})
+	safari, ok := m.Get("safari")
+	if safari.name != "tiger" || !ok {
+		t.Error("Set, then Update failed")
+	}
+
+	m.Update("marine", func(exists bool, valueInMap Animal) (Animal, bool) {
+		if exists {
+			t.Error("Update recieved exists flag for empty key")
+		}
+		if valueInMap.name != "" {
+			t.Error("Update did not receive zero value for non existing key")
+		}
+		valueInMap.name = "whale"
+		return valueInMap, true
+	})
+	marineAnimals, ok := m.Get("marine")
+	if marineAnimals.name != "whale" || !ok {
+		t.Error("Update on non-existing key failed")
+	}
+
+	// return false to prevent updateing map
+	m.Set("safari", lion)
+	m.Update("safari", func(exists bool, valueInMap Animal) (Animal, bool) {
+		if !exists {
+			t.Error("Update recieved false exists flag for existing key")
+		}
+		valueInMap.name = "tiger"
+		return valueInMap, false
+	})
+	safari, ok = m.Get("safari")
+	if safari.name != "lion" || !ok {
+		t.Error("Set, then aborting Update failed")
+	}
+
+	m.Update("tundra", func(exists bool, valueInMap Animal) (Animal, bool) {
+		if exists {
+			t.Error("Update recieved exists flag for empty key")
+		}
+		if valueInMap.name != "" {
+			t.Error("Update did not receive zero value for non existing key")
+		}
+		valueInMap.name = "moose"
+		return valueInMap, false
+	})
+	_, ok = m.Get("tundra")
+	if ok {
+		t.Error("Update aborting on non-existing key failed")
+	}
+}
+
 func TestUpsert(t *testing.T) {
 	dolphin := Animal{"dolphin"}
 	whale := Animal{"whale"}
