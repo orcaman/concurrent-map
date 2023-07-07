@@ -10,7 +10,7 @@ Import the package:
 
 ```go
 import (
-	"github.com/orcaman/concurrent-map/v2"
+	cmap "github.com/orcaman/concurrent-map/v2"
 )
 
 ```
