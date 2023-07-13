@@ -143,7 +143,7 @@ func BenchmarkMultiInsertDifferent_32_Shard(b *testing.B) {
 	runWithShards(benchmarkMultiInsertDifferent, b, 32)
 }
 func BenchmarkMultiInsertDifferent_256_Shard(b *testing.B) {
-	runWithShards(benchmarkMultiGetSetDifferent, b, 256)
+	runWithShards(benchmarkMultiInsertDifferent, b, 256)
 }
 
 func BenchmarkMultiInsertSame(b *testing.B) {
@@ -291,7 +291,6 @@ func BenchmarkMultiGetSetBlock_32_Shard(b *testing.B) {
 func BenchmarkMultiGetSetBlock_256_Shard(b *testing.B) {
 	runWithShards(benchmarkMultiGetSetBlock, b, 256)
 }
-
 
 func GetSet[K comparable, V any](m ConcurrentMap[K, V], finished chan struct{}) (set func(key K, value V), get func(key K, value V)) {
 	return func(key K, value V) {
