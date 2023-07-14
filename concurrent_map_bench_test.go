@@ -292,7 +292,6 @@ func BenchmarkMultiGetSetBlock_256_Shard(b *testing.B) {
 	runWithShards(benchmarkMultiGetSetBlock, b, 256)
 }
 
-
 func GetSet[K comparable, V any](m ConcurrentMap[K, V], finished chan struct{}) (set func(key K, value V), get func(key K, value V)) {
 	return func(key K, value V) {
 			for i := 0; i < 10; i++ {
@@ -339,5 +338,41 @@ func BenchmarkKeys(b *testing.B) {
 	}
 	for i := 0; i < b.N; i++ {
 		m.Keys()
+	}
+}
+
+func BenchmarkCount(b *testing.B) {
+	m := New[Animal]()
+
+	// Insert 100 elements.
+	for i := 0; i < 10000; i++ {
+		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
+	}
+	for i := 0; i < b.N; i++ {
+		m.Count()
+	}
+}
+
+func BenchmarkRemoveExists(b *testing.B) {
+	m := New[Animal]()
+
+	// Insert 100 elements.
+	for i := 0; i < 10000; i++ {
+		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
+	}
+	for i := 0; i < b.N; i++ {
+		m.Remove(strconv.Itoa(i))
+	}
+}
+
+func BenchmarkRemoveNotExists(b *testing.B) {
+	m := New[Animal]()
+
+	// Insert 100 elements.
+	for i := 0; i < 10000; i++ {
+		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
+	}
+	for i := 0; i < b.N; i++ {
+		m.Remove(strconv.Itoa(0))
 	}
 }
