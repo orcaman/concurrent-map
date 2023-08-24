@@ -6,58 +6,33 @@ import (
 	"testing"
 )
 
-type Integer int
-
-func (i Integer) String() string {
-	return strconv.Itoa(int(i))
-}
-
 func BenchmarkItems(b *testing.B) {
-	m := New[Animal]()
+	count := 10000
+	shardCount := 32
+	m := New(count, shardCount)
 
-	// Insert 100 elements.
-	for i := 0; i < 10000; i++ {
+	// Insert 10000 elements.
+	for i := 0; i < count; i++ {
 		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
 	}
-	for i := 0; i < b.N; i++ {
-		m.Items()
-	}
-}
 
-func BenchmarkItemsInteger(b *testing.B) {
-	m := NewStringer[Integer, Animal]()
-
-	// Insert 100 elements.
-	for i := 0; i < 10000; i++ {
-		m.Set((Integer)(i), Animal{strconv.Itoa(i)})
-	}
-	for i := 0; i < b.N; i++ {
-		m.Items()
-	}
-}
-func directSharding(key uint32) uint32 {
-	return key
-}
-
-func BenchmarkItemsInt(b *testing.B) {
-	m := NewWithCustomShardingFunction[uint32, Animal](directSharding)
-
-	// Insert 100 elements.
-	for i := 0; i < 10000; i++ {
-		m.Set((uint32)(i), Animal{strconv.Itoa(i)})
-	}
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		m.Items()
 	}
 }
 
 func BenchmarkMarshalJson(b *testing.B) {
-	m := New[Animal]()
+	count := 100
+	shardCount := 32
+	m := New(count*shardCount, shardCount)
 
 	// Insert 100 elements.
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < count; i++ {
 		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
 	}
+
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, err := m.MarshalJSON()
 		if err != nil {
@@ -73,7 +48,8 @@ func BenchmarkStrconv(b *testing.B) {
 }
 
 func BenchmarkSingleInsertAbsent(b *testing.B) {
-	m := New[string]()
+	shardCount := 32
+	m := New(100*shardCount, shardCount)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		m.Set(strconv.Itoa(i), "value")
@@ -89,7 +65,8 @@ func BenchmarkSingleInsertAbsentSyncMap(b *testing.B) {
 }
 
 func BenchmarkSingleInsertPresent(b *testing.B) {
-	m := New[string]()
+	shardCount := 32
+	m := New(100*shardCount, shardCount)
 	m.Set("key", "value")
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -106,8 +83,8 @@ func BenchmarkSingleInsertPresentSyncMap(b *testing.B) {
 	}
 }
 
-func benchmarkMultiInsertDifferent(b *testing.B) {
-	m := New[string]()
+func benchmarkMultiInsertDifferent(b *testing.B, shardCount int) {
+	m := New(100*shardCount, shardCount)
 	finished := make(chan struct{}, b.N)
 	_, set := GetSet(m, finished)
 	b.ResetTimer()
@@ -122,8 +99,7 @@ func benchmarkMultiInsertDifferent(b *testing.B) {
 func BenchmarkMultiInsertDifferentSyncMap(b *testing.B) {
 	var m sync.Map
 	finished := make(chan struct{}, b.N)
-	_, set := GetSetSyncMap[string, string](&m, finished)
-
+	_, set := GetSetSyncMap(&m, finished)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		go set(strconv.Itoa(i), "value")
@@ -134,20 +110,21 @@ func BenchmarkMultiInsertDifferentSyncMap(b *testing.B) {
 }
 
 func BenchmarkMultiInsertDifferent_1_Shard(b *testing.B) {
-	runWithShards(benchmarkMultiInsertDifferent, b, 1)
+	benchmarkMultiInsertDifferent(b, 1)
 }
 func BenchmarkMultiInsertDifferent_16_Shard(b *testing.B) {
-	runWithShards(benchmarkMultiInsertDifferent, b, 16)
+	benchmarkMultiInsertDifferent(b, 16)
 }
 func BenchmarkMultiInsertDifferent_32_Shard(b *testing.B) {
-	runWithShards(benchmarkMultiInsertDifferent, b, 32)
+	benchmarkMultiInsertDifferent(b, 32)
 }
 func BenchmarkMultiInsertDifferent_256_Shard(b *testing.B) {
-	runWithShards(benchmarkMultiGetSetDifferent, b, 256)
+	benchmarkMultiGetSetDifferent(b, 256)
 }
 
 func BenchmarkMultiInsertSame(b *testing.B) {
-	m := New[string]()
+	shardCount := 32
+	m := New(100*shardCount, shardCount)
 	finished := make(chan struct{}, b.N)
 	_, set := GetSet(m, finished)
 	m.Set("key", "value")
@@ -163,7 +140,7 @@ func BenchmarkMultiInsertSame(b *testing.B) {
 func BenchmarkMultiInsertSameSyncMap(b *testing.B) {
 	var m sync.Map
 	finished := make(chan struct{}, b.N)
-	_, set := GetSetSyncMap[string, string](&m, finished)
+	_, set := GetSetSyncMap(&m, finished)
 	m.Store("key", "value")
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -175,7 +152,8 @@ func BenchmarkMultiInsertSameSyncMap(b *testing.B) {
 }
 
 func BenchmarkMultiGetSame(b *testing.B) {
-	m := New[string]()
+	shardCount := 32
+	m := New(100*shardCount, shardCount)
 	finished := make(chan struct{}, b.N)
 	get, _ := GetSet(m, finished)
 	m.Set("key", "value")
@@ -191,7 +169,7 @@ func BenchmarkMultiGetSame(b *testing.B) {
 func BenchmarkMultiGetSameSyncMap(b *testing.B) {
 	var m sync.Map
 	finished := make(chan struct{}, b.N)
-	get, _ := GetSetSyncMap[string, string](&m, finished)
+	get, _ := GetSetSyncMap(&m, finished)
 	m.Store("key", "value")
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -202,8 +180,8 @@ func BenchmarkMultiGetSameSyncMap(b *testing.B) {
 	}
 }
 
-func benchmarkMultiGetSetDifferent(b *testing.B) {
-	m := New[string]()
+func benchmarkMultiGetSetDifferent(b *testing.B, shardCount int) {
+	m := New(100*shardCount, shardCount)
 	finished := make(chan struct{}, 2*b.N)
 	get, set := GetSet(m, finished)
 	m.Set("-1", "value")
@@ -220,7 +198,7 @@ func benchmarkMultiGetSetDifferent(b *testing.B) {
 func BenchmarkMultiGetSetDifferentSyncMap(b *testing.B) {
 	var m sync.Map
 	finished := make(chan struct{}, 2*b.N)
-	get, set := GetSetSyncMap[string, string](&m, finished)
+	get, set := GetSetSyncMap(&m, finished)
 	m.Store("-1", "value")
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -233,29 +211,29 @@ func BenchmarkMultiGetSetDifferentSyncMap(b *testing.B) {
 }
 
 func BenchmarkMultiGetSetDifferent_1_Shard(b *testing.B) {
-	runWithShards(benchmarkMultiGetSetDifferent, b, 1)
+	benchmarkMultiGetSetDifferent(b, 1)
 }
 func BenchmarkMultiGetSetDifferent_16_Shard(b *testing.B) {
-	runWithShards(benchmarkMultiGetSetDifferent, b, 16)
+	benchmarkMultiGetSetDifferent(b, 16)
 }
 func BenchmarkMultiGetSetDifferent_32_Shard(b *testing.B) {
-	runWithShards(benchmarkMultiGetSetDifferent, b, 32)
+	benchmarkMultiGetSetDifferent(b, 32)
 }
 func BenchmarkMultiGetSetDifferent_256_Shard(b *testing.B) {
-	runWithShards(benchmarkMultiGetSetDifferent, b, 256)
+	benchmarkMultiGetSetDifferent(b, 256)
 }
 
-func benchmarkMultiGetSetBlock(b *testing.B) {
-	m := New[string]()
+func benchmarkMultiGetSetBlock(b *testing.B, shardCount int) {
+	m := New(100*shardCount, shardCount)
 	finished := make(chan struct{}, 2*b.N)
 	get, set := GetSet(m, finished)
 	for i := 0; i < b.N; i++ {
-		m.Set(strconv.Itoa(i%100), "value")
+		m.Set(strconv.Itoa(i%(100*shardCount)), "value")
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		go set(strconv.Itoa(i%100), "value")
-		go get(strconv.Itoa(i%100), "value")
+		go set(strconv.Itoa(i%(100*shardCount)), "value")
+		go get(strconv.Itoa(i%(100*shardCount)), "value")
 	}
 	for i := 0; i < 2*b.N; i++ {
 		<-finished
@@ -264,15 +242,16 @@ func benchmarkMultiGetSetBlock(b *testing.B) {
 
 func BenchmarkMultiGetSetBlockSyncMap(b *testing.B) {
 	var m sync.Map
+	shardCount := 32
 	finished := make(chan struct{}, 2*b.N)
-	get, set := GetSetSyncMap[string, string](&m, finished)
+	get, set := GetSetSyncMap(&m, finished)
 	for i := 0; i < b.N; i++ {
-		m.Store(strconv.Itoa(i%100), "value")
+		m.Store(strconv.Itoa(i%(100*shardCount)), "value")
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		go set(strconv.Itoa(i%100), "value")
-		go get(strconv.Itoa(i%100), "value")
+		go set(strconv.Itoa(i%(100*shardCount)), "value")
+		go get(strconv.Itoa(i%(100*shardCount)), "value")
 	}
 	for i := 0; i < 2*b.N; i++ {
 		<-finished
@@ -280,64 +259,78 @@ func BenchmarkMultiGetSetBlockSyncMap(b *testing.B) {
 }
 
 func BenchmarkMultiGetSetBlock_1_Shard(b *testing.B) {
-	runWithShards(benchmarkMultiGetSetBlock, b, 1)
+	benchmarkMultiGetSetBlock(b, 1)
 }
 func BenchmarkMultiGetSetBlock_16_Shard(b *testing.B) {
-	runWithShards(benchmarkMultiGetSetBlock, b, 16)
+	benchmarkMultiGetSetBlock(b, 16)
 }
 func BenchmarkMultiGetSetBlock_32_Shard(b *testing.B) {
-	runWithShards(benchmarkMultiGetSetBlock, b, 32)
+	benchmarkMultiGetSetBlock(b, 32)
 }
 func BenchmarkMultiGetSetBlock_256_Shard(b *testing.B) {
-	runWithShards(benchmarkMultiGetSetBlock, b, 256)
+	benchmarkMultiGetSetBlock(b, 256)
 }
 
-
-func GetSet[K comparable, V any](m ConcurrentMap[K, V], finished chan struct{}) (set func(key K, value V), get func(key K, value V)) {
-	return func(key K, value V) {
-			for i := 0; i < 10; i++ {
-				m.Get(key)
-			}
-			finished <- struct{}{}
-		}, func(key K, value V) {
-			for i := 0; i < 10; i++ {
-				m.Set(key, value)
-			}
-			finished <- struct{}{}
+func GetSet(m *ConcurrentMap, finished chan struct{}) (set func(key, value string), get func(key, value string)) {
+	return func(key, value string) {
+		for i := 0; i < 10; i++ {
+			m.Get(key)
 		}
+		finished <- struct{}{}
+	}, func(key, value string) {
+		for i := 0; i < 10; i++ {
+			m.Set(key, value)
+		}
+		finished <- struct{}{}
+	}
 }
 
-func GetSetSyncMap[K comparable, V any](m *sync.Map, finished chan struct{}) (get func(key K, value V), set func(key K, value V)) {
-	get = func(key K, value V) {
+func GetSetSyncMap(m *sync.Map, finished chan struct{}) (set func(key, value string), get func(key, value string)) {
+	return func(key, value string) {
 		for i := 0; i < 10; i++ {
 			m.Load(key)
 		}
 		finished <- struct{}{}
-	}
-	set = func(key K, value V) {
+	}, func(key, value string) {
 		for i := 0; i < 10; i++ {
 			m.Store(key, value)
 		}
 		finished <- struct{}{}
 	}
-	return
-}
-
-func runWithShards(bench func(b *testing.B), b *testing.B, shardsCount int) {
-	oldShardsCount := SHARD_COUNT
-	SHARD_COUNT = shardsCount
-	bench(b)
-	SHARD_COUNT = oldShardsCount
 }
 
 func BenchmarkKeys(b *testing.B) {
-	m := New[Animal]()
+	count := 100000
+	shardCount := 32
+	m := New(count, shardCount)
 
-	// Insert 100 elements.
-	for i := 0; i < 10000; i++ {
+	// Insert 10000 elements.
+	for i := 0; i < count; i++ {
 		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
 	}
 	for i := 0; i < b.N; i++ {
 		m.Keys()
+	}
+}
+
+func BenchmarkKeysSyncMap(b *testing.B) {
+	var m sync.Map
+	count := 100000
+	keys := make([]string, 0)
+
+	// Insert 10000 elements.
+	for i := 0; i < count; i++ {
+		m.Store(strconv.Itoa(i), Animal{strconv.Itoa(i)})
+	}
+
+	for i := 0; i < b.N; i++ {
+		m.Range(func(key, value interface{}) bool {
+			k, ok := key.(string)
+			if !ok {
+				return false
+			}
+			keys = append(keys, k)
+			return true
+		})
 	}
 }
