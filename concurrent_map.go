@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-var SHARD_COUNT = 32
+var DEFAULT_SHARD_COUNT = 32
 
 type Stringer interface {
 	fmt.Stringer
@@ -14,7 +14,7 @@ type Stringer interface {
 }
 
 // A "thread" safe map of type string:Anything.
-// To avoid lock bottlenecks this map is dived to several (SHARD_COUNT) map shards.
+// To avoid lock bottlenecks this map is dived to several (m.numShards()) map shards.
 type ConcurrentMap[K comparable, V any] struct {
 	shards   []*ConcurrentMapShared[K, V]
 	sharding func(key K) uint32
@@ -26,35 +26,55 @@ type ConcurrentMapShared[K comparable, V any] struct {
 	sync.RWMutex // Read Write mutex, guards access to internal map.
 }
 
-func create[K comparable, V any](sharding func(key K) uint32) ConcurrentMap[K, V] {
+func (m ConcurrentMap[K, V]) numShards() int {
+    return len(m.shards)
+}
+
+// rename create to createWithSize and add size parameter
+func createWithSize[K comparable, V any](num unit32, sharding func(key K) uint32) ConcurrentMap[K, V] {
 	m := ConcurrentMap[K, V]{
 		sharding: sharding,
-		shards:   make([]*ConcurrentMapShared[K, V], SHARD_COUNT),
+		shards:   make([]*ConcurrentMapShared[K, V], num),
 	}
-	for i := 0; i < SHARD_COUNT; i++ {
+	for i := 0; i < num; i++ {
 		m.shards[i] = &ConcurrentMapShared[K, V]{items: make(map[K]V)}
 	}
 	return m
 }
 
-// Creates a new concurrent map.
+//
+// Methods to create a new concurrent map with default number of shards
+//
 func New[V any]() ConcurrentMap[string, V] {
-	return create[string, V](fnv32)
+	return createWithSize[string, V](DEFAULT_SHARD_COUNT,fnv32)
 }
 
-// Creates a new concurrent map.
 func NewStringer[K Stringer, V any]() ConcurrentMap[K, V] {
-	return create[K, V](strfnv32[K])
+	return createWithSize[K, V](DEFAULT_SHARD_COUNT,strfnv32[K])
 }
 
-// Creates a new concurrent map.
 func NewWithCustomShardingFunction[K comparable, V any](sharding func(key K) uint32) ConcurrentMap[K, V] {
-	return create[K, V](sharding)
+	return createWithSize[K, V](DEFAULT_SHARD_COUNT,sharding)
+}
+
+//
+// Methods to create a new concurrent map with specified number of shards
+//
+func NewWithSize[V any](size uint32) ConcurrentMap[string, V] {
+	return createWithSize[string, V](size,fnv32)
+}
+
+func NewStringerWithSize[K Stringer, V any](size uint32) ConcurrentMap[K, V] {
+	return createWithSize[K, V](size,strfnv32[K])
+}
+
+func NewWithSizeAndCustomShardingFunction[K comparable, V any](size uint32,sharding func(key K) uint32) ConcurrentMap[K, V] {
+	return createWithSize[K, V](size,sharding)
 }
 
 // GetShard returns shard under given key
 func (m ConcurrentMap[K, V]) GetShard(key K) *ConcurrentMapShared[K, V] {
-	return m.shards[uint(m.sharding(key))%uint(SHARD_COUNT)]
+	return m.shards[uint(m.sharding(key))%uint(m.numShards())]
 }
 
 func (m ConcurrentMap[K, V]) MSet(data map[K]V) {
@@ -119,7 +139,7 @@ func (m ConcurrentMap[K, V]) Get(key K) (V, bool) {
 // Count returns the number of elements within the map.
 func (m ConcurrentMap[K, V]) Count() int {
 	count := 0
-	for i := 0; i < SHARD_COUNT; i++ {
+	for i := 0; i < m.numShards(); i++ {
 		shard := m.shards[i]
 		shard.RLock()
 		count += len(shard.items)
@@ -228,9 +248,9 @@ func snapshot[K comparable, V any](m ConcurrentMap[K, V]) (chans []chan Tuple[K,
 	if len(m.shards) == 0 {
 		panic(`cmap.ConcurrentMap is not initialized. Should run New() before usage.`)
 	}
-	chans = make([]chan Tuple[K, V], SHARD_COUNT)
+	chans = make([]chan Tuple[K, V], m.numShards())
 	wg := sync.WaitGroup{}
-	wg.Add(SHARD_COUNT)
+	wg.Add(m.numShards())
 	// Foreach shard.
 	for index, shard := range m.shards {
 		go func(index int, shard *ConcurrentMapShared[K, V]) {
@@ -303,7 +323,7 @@ func (m ConcurrentMap[K, V]) Keys() []K {
 	go func() {
 		// Foreach shard.
 		wg := sync.WaitGroup{}
-		wg.Add(SHARD_COUNT)
+		wg.Add(m.numShards())
 		for _, shard := range m.shards {
 			go func(shard *ConcurrentMapShared[K, V]) {
 				// Foreach key, value pair.
