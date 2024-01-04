@@ -31,7 +31,7 @@ func (m ConcurrentMap[K, V]) numShards() int {
 }
 
 // rename create to createWithSize and add size parameter
-func createWithSize[K comparable, V any](num unit32, sharding func(key K) uint32) ConcurrentMap[K, V] {
+func createWithSize[K comparable, V any](num int, sharding func(key K) uint32) ConcurrentMap[K, V] {
 	m := ConcurrentMap[K, V]{
 		sharding: sharding,
 		shards:   make([]*ConcurrentMapShared[K, V], num),
@@ -60,15 +60,15 @@ func NewWithCustomShardingFunction[K comparable, V any](sharding func(key K) uin
 //
 // Methods to create a new concurrent map with specified number of shards
 //
-func NewWithSize[V any](size uint32) ConcurrentMap[string, V] {
+func NewWithSize[V any](size int) ConcurrentMap[string, V] {
 	return createWithSize[string, V](size,fnv32)
 }
 
-func NewStringerWithSize[K Stringer, V any](size uint32) ConcurrentMap[K, V] {
+func NewStringerWithSize[K Stringer, V any](size int) ConcurrentMap[K, V] {
 	return createWithSize[K, V](size,strfnv32[K])
 }
 
-func NewWithSizeAndCustomShardingFunction[K comparable, V any](size uint32,sharding func(key K) uint32) ConcurrentMap[K, V] {
+func NewWithSizeAndCustomShardingFunction[K comparable, V any](size int,sharding func(key K) uint32) ConcurrentMap[K, V] {
 	return createWithSize[K, V](size,sharding)
 }
 

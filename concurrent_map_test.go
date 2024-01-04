@@ -23,6 +23,21 @@ func TestMapCreation(t *testing.T) {
 	}
 }
 
+func TestMapCreationWithSize(t *testing.T) {
+	m := NewWithSize[string](128)
+	if m.shards == nil {
+		t.Error("map is null.")
+	}
+
+	if m.Count() != 0 {
+		t.Error("new map should be empty.")
+	}
+        if m.numShards() != 128 {
+		t.Error("new map should have 128 shards.")
+        }
+}
+
+
 func TestInsert(t *testing.T) {
 	m := New[Animal]()
 	elephant := Animal{"elephant"}
@@ -419,9 +434,9 @@ func TestConcurrent(t *testing.T) {
 }
 
 func TestJsonMarshal(t *testing.T) {
-	SHARD_COUNT = 2
+	DEFAULT_SHARD_COUNT = 2
 	defer func() {
-		SHARD_COUNT = 32
+		DEFAULT_SHARD_COUNT = 32
 	}()
 	expected := "{\"a\":1,\"b\":2}"
 	m := New[int]()

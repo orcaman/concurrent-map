@@ -1,3 +1,8 @@
+This is a fork of https://github.com/orcaman/concurrent-map, which is a thread-safe concurrent map in Go.
+It is suitable for use as an in-memory dictionary. This fork more easily enables the ability to change the number of shards from
+the default value of 32 to whatever you want. Some benchmark tests indicate that 32 is actually a good number, the optimal is
+probably somewhere between 32 to 64.
+
 # concurrent map [![Build Status](https://travis-ci.com/orcaman/concurrent-map.svg?branch=master)](https://travis-ci.com/orcaman/concurrent-map)
 
 As explained [here](http://golang.org/doc/faq#atomic_maps) and [here](http://blog.golang.org/go-maps-in-action), the `map` type in Go doesn't support concurrent reads and writes. `concurrent-map` provides a high-performance solution to this by sharding the map with minimal time spent waiting for locks.
