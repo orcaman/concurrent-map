@@ -342,6 +342,7 @@ func strfnv32[K fmt.Stringer](key K) uint32 {
 	return fnv32(key.String())
 }
 
+// https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function
 func fnv32(key string) uint32 {
 	hash := uint32(2166136261)
 	const prime32 = uint32(16777619)
