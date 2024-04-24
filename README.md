@@ -10,13 +10,13 @@ Import the package:
 
 ```go
 import (
-	"github.com/orcaman/concurrent-map/v2"
+	"github.com/orcaman/concurrent-map"
 )
 
 ```
 
 ```bash
-go get "github.com/orcaman/concurrent-map/v2"
+go get "github.com/orcaman/concurrent-map"
 ```
 
 The package is now imported under the "cmap" namespace.
@@ -26,13 +26,15 @@ The package is now imported under the "cmap" namespace.
 ```go
 
 	// Create a new map.
-	m := cmap.New[string]()
+	m := cmap.New()
 
 	// Sets item within map, sets "bar" under key "foo"
 	m.Set("foo", "bar")
 
 	// Retrieve item from map.
-	bar, ok := m.Get("foo")
+	if tmp, ok := m.Get("foo"); ok {
+		bar := tmp.(string)
+	}
 
 	// Removes item under key "foo"
 	m.Remove("foo")
@@ -44,7 +46,7 @@ For more examples have a look at concurrent_map_test.go.
 Running tests:
 
 ```bash
-go test "github.com/orcaman/concurrent-map/v2"
+go test "github.com/orcaman/concurrent-map"
 ```
 
 ## guidelines for contributing
@@ -55,9 +57,6 @@ Contributions are highly welcome. In order for a contribution to be merged, plea
 - New code must have test coverage.
 - If the code is about performance issues, you must include benchmarks in the process (either in the issue or in the PR).
 - In general, we would like to keep `concurrent-map` as simple as possible and as similar to the native `map`. Please keep this in mind when opening issues.
-
-## language
-- [中文说明](./README-zh.md)
 
 ## license
 MIT (see [LICENSE](https://github.com/orcaman/concurrent-map/blob/master/LICENSE) file)

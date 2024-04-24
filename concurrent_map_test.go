@@ -2,7 +2,8 @@ package cmap
 
 import (
 	"encoding/json"
-	"hash/fnv"
+	"fmt"
+	"math/rand"
 	"sort"
 	"strconv"
 	"testing"
@@ -13,8 +14,9 @@ type Animal struct {
 }
 
 func TestMapCreation(t *testing.T) {
-	m := New[string]()
-	if m.shards == nil {
+	shardCount := 32
+	m := New(100*shardCount, shardCount)
+	if m == nil {
 		t.Error("map is null.")
 	}
 
@@ -24,7 +26,8 @@ func TestMapCreation(t *testing.T) {
 }
 
 func TestInsert(t *testing.T) {
-	m := New[Animal]()
+	shardCount := 32
+	m := New(100*shardCount, shardCount)
 	elephant := Animal{"elephant"}
 	monkey := Animal{"monkey"}
 
@@ -36,8 +39,24 @@ func TestInsert(t *testing.T) {
 	}
 }
 
+func TestInsertWithDuplicates(t *testing.T) {
+	shardCount := 1
+	m := New(5*shardCount, shardCount)
+	elephant := Animal{"elephant"}
+
+	for i := 0; i < 1000; i++ {
+		m.Set("elephant", elephant)
+		key := fmt.Sprintf("%x", rand.Int63n(1<<60))
+		m.Set(key, Animal{key})
+	}
+	if m.Count() > 5 {
+		t.Error("map should contain no more than 5 elements but contains", m.Count())
+	}
+}
+
 func TestInsertAbsent(t *testing.T) {
-	m := New[Animal]()
+	shardCount := 32
+	m := New(100*shardCount, shardCount)
 	elephant := Animal{"elephant"}
 	monkey := Animal{"monkey"}
 
@@ -48,7 +67,8 @@ func TestInsertAbsent(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	m := New[Animal]()
+	shardCount := 32
+	m := New(100*shardCount, shardCount)
 
 	// Get a missing element.
 	val, ok := m.Get("Money")
@@ -57,7 +77,7 @@ func TestGet(t *testing.T) {
 		t.Error("ok should be false when item is missing from map.")
 	}
 
-	if (val != Animal{}) {
+	if val != nil {
 		t.Error("Missing values should return as null.")
 	}
 
@@ -65,9 +85,16 @@ func TestGet(t *testing.T) {
 	m.Set("elephant", elephant)
 
 	// Retrieve inserted element.
-	elephant, ok = m.Get("elephant")
+
+	tmp, ok := m.Get("elephant")
+	elephant = tmp.(Animal) // Type assertion.
+
 	if ok == false {
 		t.Error("ok should be true for item stored within the map.")
+	}
+
+	if &elephant == nil {
+		t.Error("expecting an element, not null.")
 	}
 
 	if elephant.name != "elephant" {
@@ -76,7 +103,8 @@ func TestGet(t *testing.T) {
 }
 
 func TestHas(t *testing.T) {
-	m := New[Animal]()
+	shardCount := 32
+	m := New(100*shardCount, shardCount)
 
 	// Get a missing element.
 	if m.Has("Money") == true {
@@ -92,7 +120,8 @@ func TestHas(t *testing.T) {
 }
 
 func TestRemove(t *testing.T) {
-	m := New[Animal]()
+	shardCount := 32
+	m := New(100*shardCount, shardCount)
 
 	monkey := Animal{"monkey"}
 	m.Set("monkey", monkey)
@@ -109,7 +138,7 @@ func TestRemove(t *testing.T) {
 		t.Error("Expecting ok to be false for missing items.")
 	}
 
-	if (temp != Animal{}) {
+	if temp != nil {
 		t.Error("Expecting item to be nil after its removal.")
 	}
 
@@ -117,8 +146,79 @@ func TestRemove(t *testing.T) {
 	m.Remove("noone")
 }
 
+func TestSetDuplicateGetAfterRemoveShouldErr(t *testing.T) {
+	shardCount := 32
+	m := New(100*shardCount, shardCount)
+	key := fmt.Sprintf("%x", rand.Int63n(1<<60))
+	value := "duplicated"
+
+	m.Set(key, value)
+	// set again
+	m.Set(key, value)
+
+	m.Remove(key)
+	val, found := m.Get(key)
+
+	if found {
+		t.Error("Expecting to not find item after removal")
+	}
+
+	if val != nil {
+		t.Error("Expecting item to be nil after its removal")
+	}
+}
+
+func TestSetIfAbsentDuplicateGetAfterRemoveShouldErr(t *testing.T) {
+	shardCount := 32
+	m := New(100*shardCount, shardCount)
+	key := fmt.Sprintf("%x", rand.Int63n(1<<60))
+	value := "duplicated"
+
+	added := m.SetIfAbsent(key, value)
+	if !added {
+		t.Error("Not expecting item to be found")
+	}
+
+	// set again
+	added = m.SetIfAbsent(key, value)
+	if added {
+		t.Error("Expecting item to be found")
+	}
+
+	m.Remove(key)
+	val, found := m.Get(key)
+
+	if found {
+		t.Error("Expecting to not find item after removal")
+	}
+
+	if val != nil {
+		t.Error("Expecting item to be nil after its removal")
+	}
+}
+
+func TestKeysShouldNotReportRemovedKey(t *testing.T) {
+	shardCount := 32
+	m := New(100*shardCount, shardCount)
+	key := fmt.Sprintf("%x", rand.Int63n(1<<60))
+
+	m.Set(key, key)
+	// set again
+	m.Set(key, key)
+
+	m.Remove(key)
+	keys := m.Keys()
+
+	for _, k := range keys {
+		if k == key {
+			t.Error("Not expecting to find removed key")
+		}
+	}
+}
+
 func TestRemoveCb(t *testing.T) {
-	m := New[Animal]()
+	shardCount := 32
+	m := New(100*shardCount, shardCount)
 
 	monkey := Animal{"monkey"}
 	m.Set("monkey", monkey)
@@ -127,15 +227,18 @@ func TestRemoveCb(t *testing.T) {
 
 	var (
 		mapKey   string
-		mapVal   Animal
+		mapVal   interface{}
 		wasFound bool
 	)
-	cb := func(key string, val Animal, exists bool) bool {
+	cb := func(key string, val interface{}, exists bool) bool {
 		mapKey = key
 		mapVal = val
 		wasFound = exists
 
-		return val.name == "monkey"
+		if animal, ok := val.(Animal); ok {
+			return animal.name == "monkey"
+		}
+		return false
 	}
 
 	// Monkey should be removed
@@ -192,7 +295,7 @@ func TestRemoveCb(t *testing.T) {
 		t.Error("Wrong key was provided to the callback")
 	}
 
-	if (mapVal != Animal{}) {
+	if mapVal != nil {
 		t.Errorf("Wrong value was provided to the value")
 	}
 
@@ -206,20 +309,28 @@ func TestRemoveCb(t *testing.T) {
 }
 
 func TestPop(t *testing.T) {
-	m := New[Animal]()
+	shardCount := 32
+	m := New(100*shardCount, shardCount)
 
 	monkey := Animal{"monkey"}
 	m.Set("monkey", monkey)
 
 	v, exists := m.Pop("monkey")
 
-	if !exists || v != monkey {
+	if !exists {
 		t.Error("Pop didn't find a monkey.")
 	}
 
-	v2, exists2 := m.Pop("monkey")
+	m1, ok := v.(Animal)
 
-	if exists2 || v2 == monkey {
+	if !ok || m1 != monkey {
+		t.Error("Pop found something else, but monkey.")
+	}
+
+	v2, exists2 := m.Pop("monkey")
+	m1, ok = v2.(Animal)
+
+	if exists2 || ok || m1 == monkey {
 		t.Error("Pop keeps finding monkey")
 	}
 
@@ -233,13 +344,14 @@ func TestPop(t *testing.T) {
 		t.Error("Expecting ok to be false for missing items.")
 	}
 
-	if (temp != Animal{}) {
+	if temp != nil {
 		t.Error("Expecting item to be nil after its removal.")
 	}
 }
 
 func TestCount(t *testing.T) {
-	m := New[Animal]()
+	shardCount := 32
+	m := New(100*shardCount, shardCount)
 	for i := 0; i < 100; i++ {
 		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
 	}
@@ -250,7 +362,8 @@ func TestCount(t *testing.T) {
 }
 
 func TestIsEmpty(t *testing.T) {
-	m := New[Animal]()
+	shardCount := 32
+	m := New(100*shardCount, shardCount)
 
 	if m.IsEmpty() == false {
 		t.Error("new map should be empty")
@@ -263,32 +376,9 @@ func TestIsEmpty(t *testing.T) {
 	}
 }
 
-func TestIterator(t *testing.T) {
-	m := New[Animal]()
-
-	// Insert 100 elements.
-	for i := 0; i < 100; i++ {
-		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
-	}
-
-	counter := 0
-	// Iterate over elements.
-	for item := range m.Iter() {
-		val := item.Val
-
-		if (val == Animal{}) {
-			t.Error("Expecting an object.")
-		}
-		counter++
-	}
-
-	if counter != 100 {
-		t.Error("We should have counted 100 elements.")
-	}
-}
-
 func TestBufferedIterator(t *testing.T) {
-	m := New[Animal]()
+	shardCount := 32
+	m := New(100*shardCount, shardCount)
 
 	// Insert 100 elements.
 	for i := 0; i < 100; i++ {
@@ -300,7 +390,7 @@ func TestBufferedIterator(t *testing.T) {
 	for item := range m.IterBuffered() {
 		val := item.Val
 
-		if (val == Animal{}) {
+		if val == nil {
 			t.Error("Expecting an object.")
 		}
 		counter++
@@ -311,23 +401,9 @@ func TestBufferedIterator(t *testing.T) {
 	}
 }
 
-func TestClear(t *testing.T) {
-	m := New[Animal]()
-
-	// Insert 100 elements.
-	for i := 0; i < 100; i++ {
-		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
-	}
-
-	m.Clear()
-
-	if m.Count() != 0 {
-		t.Error("We should have 0 elements.")
-	}
-}
-
 func TestIterCb(t *testing.T) {
-	m := New[Animal]()
+	shardCount := 32
+	m := New(100*shardCount, shardCount)
 
 	// Insert 100 elements.
 	for i := 0; i < 100; i++ {
@@ -336,16 +412,23 @@ func TestIterCb(t *testing.T) {
 
 	counter := 0
 	// Iterate over elements.
-	m.IterCb(func(key string, v Animal) {
+	m.IterCb(func(key string, v interface{}) {
+		_, ok := v.(Animal)
+		if !ok {
+			t.Error("Expecting an animal object")
+		}
+
 		counter++
 	})
+
 	if counter != 100 {
 		t.Error("We should have counted 100 elements.")
 	}
 }
 
 func TestItems(t *testing.T) {
-	m := New[Animal]()
+	shardCount := 32
+	m := New(100*shardCount, shardCount)
 
 	// Insert 100 elements.
 	for i := 0; i < 100; i++ {
@@ -360,7 +443,8 @@ func TestItems(t *testing.T) {
 }
 
 func TestConcurrent(t *testing.T) {
-	m := New[int]()
+	shardCount := 32
+	m := New(100*shardCount, shardCount)
 	ch := make(chan int)
 	const iterations = 1000
 	var a [iterations]int
@@ -375,7 +459,7 @@ func TestConcurrent(t *testing.T) {
 			val, _ := m.Get(strconv.Itoa(i))
 
 			// Write to channel inserted value.
-			ch <- val
+			ch <- val.(int)
 		} // Call go routine with current index.
 	}()
 
@@ -388,7 +472,7 @@ func TestConcurrent(t *testing.T) {
 			val, _ := m.Get(strconv.Itoa(i))
 
 			// Write to channel inserted value.
-			ch <- val
+			ch <- val.(int)
 		} // Call go routine with current index.
 	}()
 
@@ -419,12 +503,9 @@ func TestConcurrent(t *testing.T) {
 }
 
 func TestJsonMarshal(t *testing.T) {
-	SHARD_COUNT = 2
-	defer func() {
-		SHARD_COUNT = 32
-	}()
+	shardCount := 2
+	m := New(100*shardCount, shardCount)
 	expected := "{\"a\":1,\"b\":2}"
-	m := New[int]()
 	m.Set("a", 1)
 	m.Set("b", 2)
 	j, err := json.Marshal(m)
@@ -439,7 +520,8 @@ func TestJsonMarshal(t *testing.T) {
 }
 
 func TestKeys(t *testing.T) {
-	m := New[Animal]()
+	shardCount := 32
+	m := New(100*shardCount, shardCount)
 
 	// Insert 100 elements.
 	for i := 0; i < 100; i++ {
@@ -447,36 +529,24 @@ func TestKeys(t *testing.T) {
 	}
 
 	keys := m.Keys()
+
 	if len(keys) != 100 {
 		t.Error("We should have counted 100 elements.")
 	}
 }
 
 func TestMInsert(t *testing.T) {
-	animals := map[string]Animal{
-		"elephant": {"elephant"},
-		"monkey":   {"monkey"},
+	animals := map[string]interface{}{
+		"elephant": Animal{"elephant"},
+		"monkey":   Animal{"monkey"},
 	}
-	m := New[Animal]()
+	shardCount := 32
+	m := New(100*shardCount, shardCount)
 	m.MSet(animals)
 
 	if m.Count() != 2 {
 		t.Error("map should contain exactly two elements.")
 	}
-}
-
-func TestFnv32(t *testing.T) {
-	key := []byte("ABC")
-
-	hasher := fnv.New32()
-	_, err := hasher.Write(key)
-	if err != nil {
-		t.Errorf(err.Error())
-	}
-	if fnv32(string(key)) != hasher.Sum32() {
-		t.Errorf("Bundled fnv32 produced %d, expected result from hash/fnv32 is %d", fnv32(string(key)), hasher.Sum32())
-	}
-
 }
 
 func TestUpsert(t *testing.T) {
@@ -485,16 +555,18 @@ func TestUpsert(t *testing.T) {
 	tiger := Animal{"tiger"}
 	lion := Animal{"lion"}
 
-	cb := func(exists bool, valueInMap Animal, newValue Animal) Animal {
+	cb := func(exists bool, valueInMap interface{}, newValue interface{}) interface{} {
+		nv := newValue.(Animal)
 		if !exists {
-			return newValue
+			return []Animal{nv}
 		}
-		valueInMap.name += newValue.name
-		return valueInMap
+		res := valueInMap.([]Animal)
+		return append(res, nv)
 	}
 
-	m := New[Animal]()
-	m.Set("marine", dolphin)
+	shardCount := 32
+	m := New(100*shardCount, shardCount)
+	m.Set("marine", []Animal{dolphin})
 	m.Upsert("marine", whale, cb)
 	m.Upsert("predator", tiger, cb)
 	m.Upsert("predator", lion, cb)
@@ -503,22 +575,40 @@ func TestUpsert(t *testing.T) {
 		t.Error("map should contain exactly two elements.")
 	}
 
+	compare := func(a, b []Animal) bool {
+		if a == nil || b == nil {
+			return false
+		}
+
+		if len(a) != len(b) {
+			return false
+		}
+
+		for i, v := range a {
+			if v != b[i] {
+				return false
+			}
+		}
+		return true
+	}
+
 	marineAnimals, ok := m.Get("marine")
-	if marineAnimals.name != "dolphinwhale" || !ok {
+	if !ok || !compare(marineAnimals.([]Animal), []Animal{dolphin, whale}) {
 		t.Error("Set, then Upsert failed")
 	}
 
 	predators, ok := m.Get("predator")
-	if !ok || predators.name != "tigerlion" {
+	if !ok || !compare(predators.([]Animal), []Animal{tiger, lion}) {
 		t.Error("Upsert, then Upsert failed")
 	}
 }
 
 func TestKeysWhenRemoving(t *testing.T) {
-	m := New[Animal]()
-
 	// Insert 100 elements.
 	Total := 100
+	shardCount := 32
+	m := New(Total*shardCount, shardCount)
+
 	for i := 0; i < Total; i++ {
 		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
 	}
@@ -526,9 +616,9 @@ func TestKeysWhenRemoving(t *testing.T) {
 	// Remove 10 elements concurrently.
 	Num := 10
 	for i := 0; i < Num; i++ {
-		go func(c *ConcurrentMap[string, Animal], n int) {
+		go func(c *ConcurrentMap, n int) {
 			c.Remove(strconv.Itoa(n))
-		}(&m, i)
+		}(m, i)
 	}
 	keys := m.Keys()
 	for _, k := range keys {
@@ -538,48 +628,22 @@ func TestKeysWhenRemoving(t *testing.T) {
 	}
 }
 
+//
 func TestUnDrainedIter(t *testing.T) {
-	m := New[Animal]()
-	// Insert 100 elements.
-	Total := 100
+	// Insert 200 elements.
+	Total := 200
+	shardCount := 32
+	m := New(Total*shardCount, shardCount)
+
 	for i := 0; i < Total; i++ {
 		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
 	}
 	counter := 0
 	// Iterate over elements.
-	ch := m.Iter()
-	for item := range ch {
-		val := item.Val
-
-		if (val == Animal{}) {
-			t.Error("Expecting an object.")
-		}
-		counter++
-		if counter == 42 {
-			break
-		}
-	}
-	for i := Total; i < 2*Total; i++ {
-		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
-	}
-	for item := range ch {
-		val := item.Val
-
-		if (val == Animal{}) {
-			t.Error("Expecting an object.")
-		}
-		counter++
-	}
-
-	if counter != 100 {
-		t.Error("We should have been right where we stopped")
-	}
-
-	counter = 0
 	for item := range m.IterBuffered() {
 		val := item.Val
 
-		if (val == Animal{}) {
+		if val == nil {
 			t.Error("Expecting an object.")
 		}
 		counter++
@@ -591,9 +655,11 @@ func TestUnDrainedIter(t *testing.T) {
 }
 
 func TestUnDrainedIterBuffered(t *testing.T) {
-	m := New[Animal]()
 	// Insert 100 elements.
 	Total := 100
+	shardCount := 32
+	m := New(2*Total*shardCount, shardCount)
+
 	for i := 0; i < Total; i++ {
 		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
 	}
@@ -603,7 +669,7 @@ func TestUnDrainedIterBuffered(t *testing.T) {
 	for item := range ch {
 		val := item.Val
 
-		if (val == Animal{}) {
+		if val == nil {
 			t.Error("Expecting an object.")
 		}
 		counter++
@@ -617,7 +683,7 @@ func TestUnDrainedIterBuffered(t *testing.T) {
 	for item := range ch {
 		val := item.Val
 
-		if (val == Animal{}) {
+		if val == nil {
 			t.Error("Expecting an object.")
 		}
 		counter++
@@ -631,7 +697,7 @@ func TestUnDrainedIterBuffered(t *testing.T) {
 	for item := range m.IterBuffered() {
 		val := item.Val
 
-		if (val == Animal{}) {
+		if val == nil {
 			t.Error("Expecting an object.")
 		}
 		counter++
