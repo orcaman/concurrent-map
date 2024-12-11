@@ -42,6 +42,11 @@ func New[V any]() ConcurrentMap[string, V] {
 	return create[string, V](fnv32)
 }
 
+// Creates a new concurrent map with generic key type.
+func NewGeneric[K comparable, V any]() ConcurrentMap[K, V] {
+	return create[K, V](genericfnv32[K])
+}
+
 // Creates a new concurrent map.
 func NewStringer[K Stringer, V any]() ConcurrentMap[K, V] {
 	return create[K, V](strfnv32[K])
@@ -224,7 +229,7 @@ func (m ConcurrentMap[K, V]) Clear() {
 // It returns once the size of each buffered channel is determined,
 // before all the channels are populated using goroutines.
 func snapshot[K comparable, V any](m ConcurrentMap[K, V]) (chans []chan Tuple[K, V]) {
-	//When you access map items before initializing.
+	// When you access map items before initializing.
 	if len(m.shards) == 0 {
 		panic(`cmap.ConcurrentMap is not initialized. Should run New() before usage.`)
 	}
@@ -338,6 +343,11 @@ func (m ConcurrentMap[K, V]) MarshalJSON() ([]byte, error) {
 	}
 	return json.Marshal(tmp)
 }
+
+func genericfnv32[K comparable](key K) uint32 {
+	return fnv32(fmt.Sprintf("%v", key))
+}
+
 func strfnv32[K fmt.Stringer](key K) uint32 {
 	return fnv32(key.String())
 }
