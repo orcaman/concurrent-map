@@ -476,7 +476,6 @@ func TestFnv32(t *testing.T) {
 	if fnv32(string(key)) != hasher.Sum32() {
 		t.Errorf("Bundled fnv32 produced %d, expected result from hash/fnv32 is %d", fnv32(string(key)), hasher.Sum32())
 	}
-
 }
 
 func TestUpsert(t *testing.T) {
@@ -639,5 +638,70 @@ func TestUnDrainedIterBuffered(t *testing.T) {
 
 	if counter != 200 {
 		t.Error("We should have counted 200 elements.")
+	}
+}
+
+func TestMapGenericInt(t *testing.T) {
+	m := NewGeneric[int, string]()
+	if m.shards == nil {
+		t.Error("map is null.")
+	}
+	if m.Count() != 0 {
+		t.Error("new map should be empty.")
+	}
+
+	m.Set(1, "elephant")
+	m.Set(2, "monkey")
+	value, ok := m.Get(1)
+	if !ok || value != "elephant" {
+		t.Error("Cannot get value of key 1, which should be elephant")
+	}
+	value, ok = m.Get(2)
+	if !ok || value != "monkey" {
+		t.Error("Cannot get value of key 2, which should be monkey")
+	}
+
+	if m.Count() != 2 {
+		t.Error("map should contain exactly two elements.")
+	}
+
+	m.Remove(1)
+	m.Remove(2)
+	if m.Count() != 0 {
+		t.Error("Expecting count to be zero once item was removed.")
+	}
+}
+
+func TestMapGenericStruct(t *testing.T) {
+	type TmpStruct struct {
+		Name string
+	}
+	m := NewGeneric[TmpStruct, string]()
+	if m.shards == nil {
+		t.Error("map is null.")
+	}
+	if m.Count() != 0 {
+		t.Error("new map should be empty.")
+	}
+
+	m.Set(TmpStruct{"elephant"}, "elephant")
+	m.Set(TmpStruct{"monkey"}, "monkey")
+	value, ok := m.Get(TmpStruct{"elephant"})
+	if !ok || value != "elephant" {
+		t.Error("Cannot get value of key elephant, which should be elephant")
+	}
+	value, ok = m.Get(TmpStruct{"monkey"})
+	if !ok || value != "monkey" {
+		t.Error("Cannot get value of key monkey, which should be monkey")
+	}
+
+	if m.Count() != 2 {
+		t.Error("map should contain exactly two elements.")
+	}
+
+	m.Remove(TmpStruct{"elephant"})
+	m.Remove(TmpStruct{"monkey"})
+	if m.Count() != 0 {
+		t.Error("Expecting count to be zero once item was removed.")
 	}
 }
