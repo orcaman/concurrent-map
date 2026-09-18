@@ -327,6 +327,34 @@ func (m ConcurrentMap[K, V]) Keys() []K {
 	return keys
 }
 
+// Vals returns all values as []V.
+func (m ConcurrentMap[K, V]) Vals() []V {
+	count := m.Count()
+	ch := make(chan V, count)
+	go func() {
+		wg := sync.WaitGroup{}
+		wg.Add(SHARD_COUNT)
+		for _, shard := range m.shards {
+			go func(shard *ConcurrentMapShared[K, V]) {
+				shard.RLock()
+				for _, val := range shard.items {
+					ch <- val
+				}
+				shard.RUnlock()
+				wg.Done()
+			}(shard)
+		}
+		wg.Wait()
+		close(ch)
+	}()
+
+	vals := make([]V, 0, count)
+	for v := range ch {
+		vals = append(vals, v)
+	}
+	return vals
+}
+
 // Reviles ConcurrentMap "private" variables to json marshal.
 func (m ConcurrentMap[K, V]) MarshalJSON() ([]byte, error) {
 	// Create a temporary map, which will hold all item spread across shards.
