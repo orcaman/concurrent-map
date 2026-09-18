@@ -326,6 +326,23 @@ func TestClear(t *testing.T) {
 	}
 }
 
+func TestClearEmpty(t *testing.T) {
+	m := New[Animal]()
+	m.Clear()
+	if m.Count() != 0 {
+		t.Error("empty Clear should leave 0 elements")
+	}
+	m.Set("a", Animal{"a"})
+	m.Clear()
+	if m.Count() != 0 {
+		t.Error("Clear after one insert should leave 0 elements")
+	}
+	m.Set("b", Animal{"b"})
+	if m.Count() != 1 {
+		t.Error("Set after Clear should insert")
+	}
+}
+
 func TestIterCb(t *testing.T) {
 	m := New[Animal]()
 

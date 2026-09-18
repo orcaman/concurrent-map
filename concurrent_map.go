@@ -214,8 +214,13 @@ func (m ConcurrentMap[K, V]) IterBuffered() <-chan Tuple[K, V] {
 
 // Clear removes all items from map.
 func (m ConcurrentMap[K, V]) Clear() {
-	for item := range m.IterBuffered() {
-		m.Remove(item.Key)
+	if len(m.shards) == 0 {
+		panic(`cmap.ConcurrentMap is not initialized. Should run New() before usage.`)
+	}
+	for _, shard := range m.shards {
+		shard.Lock()
+		shard.items = make(map[K]V)
+		shard.Unlock()
 	}
 }
 
