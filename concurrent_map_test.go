@@ -452,6 +452,19 @@ func TestKeys(t *testing.T) {
 	}
 }
 
+func TestVals(t *testing.T) {
+	m := New[Animal]()
+
+	for i := 0; i < 100; i++ {
+		m.Set(strconv.Itoa(i), Animal{strconv.Itoa(i)})
+	}
+
+	vals := m.Vals()
+	if len(vals) != 100 {
+		t.Error("We should have counted 100 elements.")
+	}
+}
+
 func TestMInsert(t *testing.T) {
 	animals := map[string]Animal{
 		"elephant": {"elephant"},
