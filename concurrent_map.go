@@ -116,6 +116,19 @@ func (m ConcurrentMap[K, V]) Get(key K) (V, bool) {
 	return val, ok
 }
 
+// RetrieveCb is a callback executed in a map.RetrieveCb() call, while RLock is held.
+// This allows callers to safely inspect or clone values (e.g. pointer/reference types) under the shard read lock.
+type RetrieveCb[K any, V any] func(key K, v V, exists bool)
+
+// RetrieveCb locks the shard containing the key with RLock, retrieves its current value and calls the callback.
+func (m ConcurrentMap[K, V]) RetrieveCb(key K, cb RetrieveCb[K, V]) {
+	shard := m.GetShard(key)
+	shard.RLock()
+	val, ok := shard.items[key]
+	cb(key, val, ok)
+	shard.RUnlock()
+}
+
 // Count returns the number of elements within the map.
 func (m ConcurrentMap[K, V]) Count() int {
 	count := 0
