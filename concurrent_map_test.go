@@ -205,6 +205,43 @@ func TestRemoveCb(t *testing.T) {
 	}
 }
 
+func TestRetrieveCb(t *testing.T) {
+	m := New[*Animal]()
+
+	monkey := &Animal{"monkey"}
+	m.Set("monkey", monkey)
+
+	var (
+		mapKey   string
+		mapVal   *Animal
+		wasFound bool
+	)
+	m.RetrieveCb("monkey", func(key string, val *Animal, exists bool) {
+		mapKey = key
+		mapVal = val
+		wasFound = exists
+	})
+
+	if !wasFound {
+		t.Error("Expected monkey to be found")
+	}
+	if mapKey != "monkey" {
+		t.Errorf("Expected key 'monkey', got '%s'", mapKey)
+	}
+	if mapVal == nil || mapVal.name != "monkey" {
+		t.Errorf("Expected value name 'monkey', got '%v'", mapVal)
+	}
+
+	// Non-existing element
+	wasFound = false
+	m.RetrieveCb("lion", func(key string, val *Animal, exists bool) {
+		wasFound = exists
+	})
+	if wasFound {
+		t.Error("Expected lion to not be found")
+	}
+}
+
 func TestPop(t *testing.T) {
 	m := New[Animal]()
 
