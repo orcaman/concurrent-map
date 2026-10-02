@@ -5,6 +5,7 @@ import (
 	"hash/fnv"
 	"sort"
 	"strconv"
+	"sync"
 	"testing"
 )
 
@@ -511,6 +512,181 @@ func TestUpsert(t *testing.T) {
 	predators, ok := m.Get("predator")
 	if !ok || predators.name != "tigerlion" {
 		t.Error("Upsert, then Upsert failed")
+	}
+}
+
+func TestUpdate(t *testing.T) {
+	m := New[Animal]()
+
+	// 1. Key does not exist, update is false: no mutation occurs
+	res, updated := m.Update("missing", func(exist bool, valueInMap Animal) (Animal, bool) {
+		if exist {
+			t.Error("key should not exist")
+		}
+		return Animal{"ghost"}, false
+	})
+	if updated {
+		t.Error("updated should be false when callback returns update = false")
+	}
+	if res.name != "ghost" {
+		t.Errorf("expected ghost, got %s", res.name)
+	}
+	if m.Has("missing") {
+		t.Error("map should not contain key when update is false")
+	}
+	if m.Count() != 0 {
+		t.Errorf("expected count 0, got %d", m.Count())
+	}
+
+	// 2. Key does not exist, update is true: value is inserted
+	res, updated = m.Update("dolphin", func(exist bool, valueInMap Animal) (Animal, bool) {
+		if exist {
+			t.Error("key should not exist")
+		}
+		return Animal{"dolphin"}, true
+	})
+	if !updated {
+		t.Error("updated should be true when callback returns update = true")
+	}
+	if res.name != "dolphin" {
+		t.Errorf("expected dolphin, got %s", res.name)
+	}
+	val, ok := m.Get("dolphin")
+	if !ok || val.name != "dolphin" {
+		t.Errorf("expected dolphin in map, got %v (ok=%v)", val, ok)
+	}
+	if m.Count() != 1 {
+		t.Errorf("expected count 1, got %d", m.Count())
+	}
+
+	// 3. Key exists, update is false: no mutation occurs, existing value preserved
+	res, updated = m.Update("dolphin", func(exist bool, valueInMap Animal) (Animal, bool) {
+		if !exist {
+			t.Error("key should exist")
+		}
+		if valueInMap.name != "dolphin" {
+			t.Errorf("expected existing value dolphin, got %s", valueInMap.name)
+		}
+		return Animal{"shark"}, false
+	})
+	if updated {
+		t.Error("updated should be false when callback returns update = false")
+	}
+	val, ok = m.Get("dolphin")
+	if !ok || val.name != "dolphin" {
+		t.Errorf("existing value should be preserved as dolphin, got %v", val)
+	}
+
+	// 4. Key exists, update is true: value is updated
+	res, updated = m.Update("dolphin", func(exist bool, valueInMap Animal) (Animal, bool) {
+		if !exist {
+			t.Error("key should exist")
+		}
+		return Animal{valueInMap.name + "whale"}, true
+	})
+	if !updated {
+		t.Error("updated should be true when callback returns update = true")
+	}
+	if res.name != "dolphinwhale" {
+		t.Errorf("expected dolphinwhale, got %s", res.name)
+	}
+	val, ok = m.Get("dolphin")
+	if !ok || val.name != "dolphinwhale" {
+		t.Errorf("value in map should be updated to dolphinwhale, got %v", val)
+	}
+}
+
+func TestGetOrSet(t *testing.T) {
+	// Sequential behavior
+	m := New[Animal]()
+	elephant := Animal{"elephant"}
+	monkey := Animal{"monkey"}
+
+	actual, loaded := m.GetOrSet("key1", elephant)
+	if loaded {
+		t.Error("loaded should be false when key was absent")
+	}
+	if actual != elephant {
+		t.Errorf("expected %v, got %v", elephant, actual)
+	}
+
+	actual, loaded = m.GetOrSet("key1", monkey)
+	if !loaded {
+		t.Error("loaded should be true when key was already present")
+	}
+	if actual != elephant {
+		t.Errorf("expected existing value %v, got %v", elephant, actual)
+	}
+
+	val, ok := m.Get("key1")
+	if !ok || val != elephant {
+		t.Errorf("expected %v in map, got %v", elephant, val)
+	}
+
+	// Concurrent behavior on same key
+	m2 := New[int]()
+	var wg sync.WaitGroup
+	routines := 50
+	loadedCount := 0
+	storedCount := 0
+	var mu sync.Mutex
+
+	for i := 0; i < routines; i++ {
+		wg.Add(1)
+		go func(v int) {
+			defer wg.Done()
+			actualVal, wasLoaded := m2.GetOrSet("sharedKey", v)
+			mu.Lock()
+			if wasLoaded {
+				loadedCount++
+			} else {
+				storedCount++
+			}
+			mu.Unlock()
+			if actualVal < 0 || actualVal >= routines {
+				t.Errorf("invalid actual value: %d", actualVal)
+			}
+		}(i)
+	}
+	wg.Wait()
+
+	if storedCount != 1 {
+		t.Errorf("expected exactly 1 stored, got %d", storedCount)
+	}
+	if loadedCount != routines-1 {
+		t.Errorf("expected %d loaded, got %d", routines-1, loadedCount)
+	}
+
+	finalVal, ok := m2.Get("sharedKey")
+	if !ok {
+		t.Error("sharedKey should exist")
+	}
+	actualInt, loaded := m2.GetOrSet("sharedKey", 999)
+	if !loaded || actualInt != finalVal {
+		t.Errorf("expected loaded=true and actual=%d, got loaded=%v actual=%d", finalVal, loaded, actualInt)
+	}
+
+	// Concurrent behavior across multiple distinct keys
+	m3 := New[int]()
+	keyCount := 1000
+	var wg2 sync.WaitGroup
+	for i := 0; i < keyCount; i++ {
+		wg2.Add(1)
+		go func(n int) {
+			defer wg2.Done()
+			actualVal, wasLoaded := m3.GetOrSet(strconv.Itoa(n), n)
+			if wasLoaded {
+				t.Errorf("key %d should not have been loaded", n)
+			}
+			if actualVal != n {
+				t.Errorf("expected %d, got %d", n, actualVal)
+			}
+		}(i)
+	}
+	wg2.Wait()
+
+	if m3.Count() != keyCount {
+		t.Errorf("expected %d keys, got %d", keyCount, m3.Count())
 	}
 }
 

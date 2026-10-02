@@ -92,6 +92,24 @@ func (m ConcurrentMap[K, V]) Upsert(key K, value V, cb UpsertCb[V]) (res V) {
 	return res
 }
 
+// Update updates an existing element or inserts a new one using a callback.
+// The callback is called while the shard lock is held, therefore it MUST NOT
+// try to access other keys in the same map, as it can lead to deadlock since
+// Go sync.RWLock is not reentrant.
+// If the callback returns update == true, the value in the map is set to newValue.
+// If update == false, no mutation occurs and existing values are preserved.
+func (m ConcurrentMap[K, V]) Update(key K, cb func(exist bool, valueInMap V) (newValue V, update bool)) (res V, updated bool) {
+	shard := m.GetShard(key)
+	shard.Lock()
+	v, ok := shard.items[key]
+	res, updated = cb(ok, v)
+	if updated {
+		shard.items[key] = res
+	}
+	shard.Unlock()
+	return res, updated
+}
+
 // Sets the given value under the specified key if no value was associated with it.
 func (m ConcurrentMap[K, V]) SetIfAbsent(key K, value V) bool {
 	// Get map shard.
@@ -103,6 +121,23 @@ func (m ConcurrentMap[K, V]) SetIfAbsent(key K, value V) bool {
 	}
 	shard.Unlock()
 	return !ok
+}
+
+// GetOrSet returns the existing value for the key if present.
+// Otherwise, it stores and returns the given value.
+// loaded is true if the value was loaded, false if stored.
+func (m ConcurrentMap[K, V]) GetOrSet(key K, value V) (actual V, loaded bool) {
+	shard := m.GetShard(key)
+	shard.Lock()
+	v, ok := shard.items[key]
+	if ok {
+		actual, loaded = v, true
+	} else {
+		shard.items[key] = value
+		actual, loaded = value, false
+	}
+	shard.Unlock()
+	return actual, loaded
 }
 
 // Get retrieves an element from map under given key.
